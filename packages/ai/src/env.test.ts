@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { resolveGoogleApiKey } from "./env";
+import { resolveGoogleApiKey, resolveTextPrimaryProvider } from "./env";
+import { buildImagePrompt } from "./image-prompts";
+import { createAiImageRouterFromEnv } from "./image-router";
 import { createAiRouterFromEnv } from "./router";
 
 const ENV_KEYS = [
@@ -37,19 +39,70 @@ describe("resolveGoogleApiKey", () => {
   });
 });
 
+describe("resolveTextPrimaryProvider", () => {
+  afterEach(clearEnv);
+
+  it("prefers anthropic when key is set and AI_PROVIDER unset", () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant";
+    process.env.GEMINI_KEY = "gemini-img";
+    expect(resolveTextPrimaryProvider()).toBe("anthropic");
+  });
+
+  it("does not pick google from GEMINI_KEY alone", () => {
+    process.env.GEMINI_KEY = "gemini-img";
+    expect(resolveTextPrimaryProvider()).toBe("mock");
+  });
+
+  it("respects explicit AI_PROVIDER", () => {
+    process.env.AI_PROVIDER = "mock";
+    process.env.ANTHROPIC_API_KEY = "sk-ant";
+    expect(resolveTextPrimaryProvider()).toBe("mock");
+  });
+});
+
 describe("createAiRouterFromEnv", () => {
   afterEach(clearEnv);
 
-  it("defaults primary to google when only GEMINI_KEY is set", () => {
+  it("uses anthropic for text when both anthropic and gemini keys exist", () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant";
+    process.env.GEMINI_KEY = "gemini-img";
+    expect(createAiRouterFromEnv()).toBeDefined();
+    expect(resolveTextPrimaryProvider()).toBe("anthropic");
+  });
+});
+
+describe("createAiImageRouterFromEnv", () => {
+  afterEach(clearEnv);
+
+  it("enables image router when GEMINI_KEY is set", () => {
     process.env.GEMINI_KEY = "test-key";
-    const router = createAiRouterFromEnv();
-    expect(router).toBeDefined();
+    const router = createAiImageRouterFromEnv();
+    expect(router.enabled).toBe(true);
   });
 
-  it("respects explicit AI_PROVIDER=mock", () => {
-    process.env.GEMINI_KEY = "test-key";
-    process.env.AI_PROVIDER = "mock";
-    const router = createAiRouterFromEnv();
-    expect(router).toBeDefined();
+  it("disables image router without a gemini key", () => {
+    const router = createAiImageRouterFromEnv();
+    expect(router.enabled).toBe(false);
+  });
+});
+
+describe("buildImagePrompt", () => {
+  it("builds a top-down map prompt", () => {
+    const prompt = buildImagePrompt("campaign_map", {
+      title: "Salt Merchants",
+      premise: "A harbor in civil war",
+      regions: [{ name: "Lower Wharf", description: "rotting piers" }],
+    });
+    expect(prompt).toContain("Top-down fantasy world map");
+    expect(prompt).toContain("Salt Merchants");
+  });
+
+  it("builds a portrait prompt", () => {
+    const prompt = buildImagePrompt("character_portrait", {
+      name: "Mara Vell",
+      role: "dock factor",
+    });
+    expect(prompt).toContain("Mara Vell");
+    expect(prompt).toContain("portrait");
   });
 });

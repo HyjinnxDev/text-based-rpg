@@ -9,7 +9,7 @@ const DEFAULT_MODELS: Record<AiProviderName, string> = {
   mock: "mock",
   openai: "gpt-4o-mini",
   anthropic: "claude-haiku-4-20250514",
-  google: "gemini-2.0-flash",
+  google: "gemini-2.5-flash",
 };
 
 export function createLiveProvider(
