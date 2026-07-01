@@ -48,7 +48,7 @@ export default function NewCampaignPage() {
         />
         {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
         <Button className="mt-4" onClick={createCampaign} disabled={loading}>
-          {loading ? "Generating world..." : "Generate campaign"}
+          {loading ? "Generating world & artwork..." : "Generate campaign"}
         </Button>
       </Card>
     </main>

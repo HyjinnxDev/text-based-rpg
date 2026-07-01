@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { createCampaignSchema } from "@tbrpg/shared";
 import { createCampaign, listCampaigns } from "@tbrpg/domain";
 import { requireSession } from "@/lib/session";
-import { getAiRouter } from "@/lib/ai";
+import { getAiImageRouter, getAiRouter } from "@/lib/ai";
+import { getStorage } from "@/lib/storage";
 
 export async function GET() {
   try {
@@ -21,7 +22,10 @@ export async function POST(request: Request) {
   try {
     const session = await requireSession();
     const body = createCampaignSchema.parse(await request.json());
-    const result = await createCampaign(session.user.id, body, getAiRouter());
+    const result = await createCampaign(session.user.id, body, getAiRouter(), {
+      imageRouter: getAiImageRouter(),
+      storage: getStorage(),
+    });
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Error";

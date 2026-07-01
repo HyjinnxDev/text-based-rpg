@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
 import {
   S3Client,
@@ -8,21 +8,38 @@ import {
 
 export interface StorageAdapter {
   put(key: string, data: Buffer, contentType: string): Promise<string>;
+  get(key: string): Promise<Buffer | null>;
   getUrl(key: string): string;
+}
+
+export function storageAssetUrl(key: string): string {
+  return `/api/assets/${key.split("/").map(encodeURIComponent).join("/")}`;
 }
 
 export class LocalStorageAdapter implements StorageAdapter {
   constructor(private baseDir: string) {}
 
+  private filePath(key: string) {
+    return path.join(this.baseDir, key);
+  }
+
   async put(key: string, data: Buffer, _contentType: string): Promise<string> {
-    const filePath = path.join(this.baseDir, key);
+    const filePath = this.filePath(key);
     await mkdir(path.dirname(filePath), { recursive: true });
     await writeFile(filePath, data);
-    return `/storage/${key}`;
+    return storageAssetUrl(key);
+  }
+
+  async get(key: string): Promise<Buffer | null> {
+    try {
+      return await readFile(this.filePath(key));
+    } catch {
+      return null;
+    }
   }
 
   getUrl(key: string): string {
-    return `/storage/${key}`;
+    return storageAssetUrl(key);
   }
 }
 
@@ -62,16 +79,23 @@ export class S3StorageAdapter implements StorageAdapter {
   }
 
   getUrl(key: string): string {
-    const endpoint = process.env.S3_ENDPOINT ?? "http://localhost:9000";
-    return `${endpoint}/${this.bucket}/${key}`;
+    const publicBase = process.env.S3_PUBLIC_URL;
+    if (publicBase) {
+      return `${publicBase.replace(/\/$/, "")}/${this.bucket}/${key}`;
+    }
+    return storageAssetUrl(key);
   }
 
-  async get(key: string): Promise<Buffer> {
-    const res = await this.client.send(
-      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
-    );
-    const bytes = await res.Body?.transformToByteArray();
-    return Buffer.from(bytes ?? []);
+  async get(key: string): Promise<Buffer | null> {
+    try {
+      const res = await this.client.send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+      );
+      const bytes = await res.Body?.transformToByteArray();
+      return Buffer.from(bytes ?? []);
+    } catch {
+      return null;
+    }
   }
 }
 
