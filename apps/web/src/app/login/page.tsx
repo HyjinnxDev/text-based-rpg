@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Card, CardDescription, CardHeader, CardTitle, Input, Label } from "@/components/ui";
-import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -73,15 +72,8 @@ export default function LoginPage() {
               {error}
             </p>
           )}
-          <Button type="submit" className="w-full" size="lg" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                Signing in…
-              </>
-            ) : (
-              "Sign in"
-            )}
+          <Button type="submit" className="w-full" size="lg" loading={loading}>
+            Sign in
           </Button>
         </form>
 

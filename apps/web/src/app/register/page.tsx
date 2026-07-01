@@ -12,7 +12,6 @@ import {
   Input,
   Label,
 } from "@/components/ui";
-import { Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -94,15 +93,8 @@ export default function RegisterPage() {
               {error}
             </p>
           )}
-          <Button type="submit" className="w-full" size="lg" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-                Creating account…
-              </>
-            ) : (
-              "Register"
-            )}
+          <Button type="submit" className="w-full" size="lg" loading={loading}>
+            Register
           </Button>
         </form>
 

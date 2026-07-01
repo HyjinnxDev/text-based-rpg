@@ -8,6 +8,7 @@ import { CampaignMap, type MapMarkerData } from "@/components/campaign-map";
 import { ScenePanel } from "@/components/scene-panel";
 import { CodexPanel } from "@/components/codex-panel";
 import { PlayTabBar } from "@/components/play-tab-bar";
+import { CampaignPlaySkeleton } from "@/components/campaign-play-skeleton";
 import { Card, Badge } from "@/components/ui";
 import { useRealtimeCampaign } from "@/hooks/use-realtime-campaign";
 
@@ -25,6 +26,7 @@ export default function CampaignPlayPage() {
   const params = useParams<{ id: string }>();
   const campaignId = params.id;
   const [campaign, setCampaign] = useState<CampaignData | null>(null);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
   const [narration, setNarration] = useState("");
   const [mobileTab, setMobileTab] = useState<PlayTab>("scene");
   const activeSceneId = campaign?.scenes[0]?.id;
@@ -32,6 +34,7 @@ export default function CampaignPlayPage() {
   const {
     realtimeEnabled,
     connected,
+    connecting,
     presence,
     lastResolved,
     mapMarkers: liveMarkers,
@@ -48,7 +51,10 @@ export default function CampaignPlayPage() {
 
   async function loadCampaign() {
     const res = await fetch(`/api/campaigns/${campaignId}`);
-    if (!res.ok) return;
+    if (!res.ok) {
+      setLoadState("error");
+      return;
+    }
     const data = await res.json();
     setCampaign({
       id: data.campaign.id,
@@ -64,19 +70,29 @@ export default function CampaignPlayPage() {
         }),
       ),
     });
+    setLoadState("ready");
   }
 
   useEffect(() => {
+    setLoadState("loading");
+    setCampaign(null);
     loadCampaign();
     const handler = () => loadCampaign();
     window.addEventListener("campaign-updated", handler);
     return () => window.removeEventListener("campaign-updated", handler);
   }, [campaignId]);
 
-  if (!campaign) {
+  if (loadState === "loading") {
+    return <CampaignPlaySkeleton />;
+  }
+
+  if (loadState === "error" || !campaign) {
     return (
-      <main className="flex min-h-[50dvh] items-center justify-center p-6">
-        <p className="animate-pulse text-muted-foreground">Loading campaign…</p>
+      <main className="flex min-h-[50dvh] flex-col items-center justify-center gap-4 p-6 text-center">
+        <p className="text-muted-foreground">Could not load this campaign.</p>
+        <Link href="/campaigns" className="text-sm text-primary hover:underline">
+          Back to campaigns
+        </Link>
       </main>
     );
   }
@@ -87,7 +103,6 @@ export default function CampaignPlayPage() {
   return (
     <>
       <main className="mx-auto max-w-7xl px-4 pb-24 pt-4 sm:px-6 sm:py-6 lg:grid lg:grid-cols-[1fr_380px] lg:gap-6 lg:pb-8 lg:pt-8">
-        {/* Campaign header */}
         <div className="mb-4 lg:col-span-2">
           <Link
             href="/campaigns"
@@ -116,11 +131,11 @@ export default function CampaignPlayPage() {
           </div>
         </div>
 
-        {/* Mobile: tabbed panels */}
         <div className="space-y-4 lg:hidden">
           {mobileTab === "scene" && (
             <ScenePanel
               connected={connected}
+              connecting={connecting}
               realtimeEnabled={realtimeEnabled}
               actionStatus={actionStatus}
               narration={narration}
@@ -140,7 +155,6 @@ export default function CampaignPlayPage() {
           {mobileTab === "codex" && <CodexPanel campaignId={campaignId} compact />}
         </div>
 
-        {/* Desktop: two-column layout */}
         <div className="hidden space-y-6 lg:block">
           <Card className="overflow-hidden p-0">
             <CampaignMap markers={markers} className="h-[min(420px,45dvh)] w-full" />
@@ -148,6 +162,7 @@ export default function CampaignPlayPage() {
 
           <ScenePanel
             connected={connected}
+            connecting={connecting}
             realtimeEnabled={realtimeEnabled}
             actionStatus={actionStatus}
             narration={narration}

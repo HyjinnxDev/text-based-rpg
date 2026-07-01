@@ -12,7 +12,7 @@ import {
   Label,
   Textarea,
 } from "@/components/ui";
-import { ArrowLeft, Loader2, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 
 export default function NewCampaignPage() {
   const router = useRouter();
@@ -86,19 +86,11 @@ export default function NewCampaignPage() {
           className="mt-6 w-full sm:w-auto"
           size="lg"
           onClick={createCampaign}
-          disabled={loading || !roughIdea.trim()}
+          disabled={!roughIdea.trim()}
+          loading={loading}
         >
-          {loading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
-              Generating world…
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-4 w-4" aria-hidden />
-              Generate campaign
-            </>
-          )}
+          {!loading && <Sparkles className="h-4 w-4" aria-hidden />}
+          {loading ? "Generating world…" : "Generate campaign"}
         </Button>
       </Card>
     </main>

@@ -21,6 +21,7 @@ export const realtimeEnabled = Boolean(REALTIME_URL);
 export function useRealtimeCampaign(campaignId: string, sceneId?: string, partyId?: string) {
   const clientRef = useRef(getRealtimeClient());
   const [connected, setConnected] = useState(false);
+  const [connecting, setConnecting] = useState(realtimeEnabled);
   const [presence, setPresence] = useState<PresenceState | null>(null);
   const [lastResolved, setLastResolved] = useState<ActionResolved | null>(null);
   const [mapMarkers, setMapMarkers] = useState<MapMarker[]>([]);
@@ -68,6 +69,7 @@ export function useRealtimeCampaign(campaignId: string, sceneId?: string, partyI
 
     const onConnect = () => {
       setConnected(true);
+      setConnecting(false);
       client.send("presence:join", { campaignId, sceneId, partyId });
       client.send("catch-up:request", {
         campaignId,
@@ -88,8 +90,12 @@ export function useRealtimeCampaign(campaignId: string, sceneId?: string, partyI
   }, [campaignId, sceneId, partyId]);
 
   useEffect(() => {
-    if (!realtimeEnabled) return;
+    if (!realtimeEnabled) {
+      setConnecting(false);
+      return;
+    }
 
+    setConnecting(true);
     const client = clientRef.current;
     const cleanups: Array<() => void> = [];
 
@@ -128,6 +134,7 @@ export function useRealtimeCampaign(campaignId: string, sceneId?: string, partyI
       client.send("presence:leave", { campaignId });
       client.disconnect();
       setConnected(false);
+      setConnecting(false);
     };
   }, [campaignId, connect]);
 
@@ -151,6 +158,7 @@ export function useRealtimeCampaign(campaignId: string, sceneId?: string, partyI
   return {
     realtimeEnabled,
     connected: realtimeEnabled ? connected : true,
+    connecting: realtimeEnabled ? connecting : false,
     presence,
     lastResolved,
     mapMarkers,

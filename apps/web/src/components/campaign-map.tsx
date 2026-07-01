@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import maplibregl from "maplibre-gl";
+import { LoadingOverlay } from "@/components/ui";
 
 export interface MapMarkerData {
   id: string;
@@ -25,9 +26,12 @@ export function CampaignMap({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
+
+    setMapReady(false);
 
     const center =
       markers.length > 0 ? markers[0].position : { lng: 12.5, lat: 41.9 };
@@ -45,6 +49,10 @@ export function CampaignMap({
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     mapRef.current = map;
 
+    const onLoad = () => setMapReady(true);
+    if (map.loaded()) onLoad();
+    else map.on("load", onLoad);
+
     const onResize = () => map.resize();
     window.addEventListener("resize", onResize);
 
@@ -52,6 +60,7 @@ export function CampaignMap({
       window.removeEventListener("resize", onResize);
       map.remove();
       mapRef.current = null;
+      setMapReady(false);
     };
   }, [markers]);
 
@@ -87,12 +96,15 @@ export function CampaignMap({
   }, [markers]);
 
   return (
-    <div
-      ref={containerRef}
-      className={
-        className ??
-        "h-full min-h-[240px] w-full overflow-hidden rounded-xl sm:min-h-[320px]"
-      }
-    />
+    <div className="relative">
+      <div
+        ref={containerRef}
+        className={
+          className ??
+          "h-full min-h-[240px] w-full overflow-hidden rounded-xl sm:min-h-[320px]"
+        }
+      />
+      {!mapReady && <LoadingOverlay label="Loading map…" />}
+    </div>
   );
 }

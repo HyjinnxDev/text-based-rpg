@@ -1,4 +1,5 @@
 import { cva, type VariantProps } from "class-variance-authority";
+import { Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
@@ -32,10 +33,22 @@ export function Button({
   className,
   variant,
   size,
+  loading,
+  children,
+  disabled,
   ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & VariantProps<typeof buttonVariants>) {
+}: React.ButtonHTMLAttributes<HTMLButtonElement> &
+  VariantProps<typeof buttonVariants> & { loading?: boolean }) {
   return (
-    <button className={cn(buttonVariants({ variant, size, className }))} {...props} />
+    <button
+      className={cn(buttonVariants({ variant, size, className }))}
+      disabled={disabled || loading}
+      aria-busy={loading}
+      {...props}
+    >
+      {loading && <Spinner className="h-4 w-4" />}
+      {children}
+    </button>
   );
 }
 
@@ -154,4 +167,66 @@ export function CardDescription({
   children: React.ReactNode;
 }) {
   return <p className={cn("text-sm text-muted-foreground", className)}>{children}</p>;
+}
+
+const spinnerSizes = {
+  sm: "h-3.5 w-3.5",
+  default: "h-4 w-4",
+  lg: "h-6 w-6",
+  xl: "h-8 w-8",
+};
+
+export function Spinner({
+  className,
+  size = "default",
+  label = "Loading",
+}: {
+  className?: string;
+  size?: keyof typeof spinnerSizes;
+  label?: string;
+}) {
+  return (
+    <span role="status" aria-label={label} className="inline-flex">
+      <Loader2
+        className={cn("animate-spin text-primary", spinnerSizes[size], className)}
+        aria-hidden
+      />
+    </span>
+  );
+}
+
+export function Skeleton({
+  className,
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div
+      className={cn("animate-pulse rounded-md bg-muted", className)}
+      aria-hidden
+      {...props}
+    />
+  );
+}
+
+export function LoadingOverlay({
+  label = "Loading…",
+  className,
+}: {
+  label?: string;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-background/70 backdrop-blur-[2px]",
+        className,
+      )}
+      role="status"
+      aria-live="polite"
+      aria-label={label}
+    >
+      <Spinner size="lg" />
+      <p className="text-sm text-muted-foreground">{label}</p>
+    </div>
+  );
 }
