@@ -1,0 +1,23 @@
+{
+  "name": "@tbrpg/ai",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^4.0.4",
+    "@ai-sdk/google": "^4.0.3",
+    "@ai-sdk/openai": "^4.0.4",
+    "@tbrpg/shared": "*",
+    "ai": "^7.0.9",
+    "zod": "^3.24.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.9"
+  }
+}

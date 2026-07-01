@@ -1,0 +1,34 @@
+{
+  "name": "text-based-rpg",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev --filter=@tbrpg/web --filter=@tbrpg/realtime-service --filter=@tbrpg/worker",
+    "build": "turbo build",
+    "postinstall": "npm run db:generate",
+    "lint": "turbo lint",
+    "test": "npm run test --workspaces --if-present",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "test:e2e": "playwright test",
+    "db:generate": "npm run generate -w @tbrpg/db",
+    "db:migrate": "npm run migrate -w @tbrpg/db",
+    "db:push": "npm run push -w @tbrpg/db",
+    "db:studio": "npm run studio -w @tbrpg/db",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.51.1",
+    "turbo": "^2.5.4",
+    "typescript": "^5.8.3",
+    "vitest": "^4.1.9",
+    "dotenv": "^17.4.2"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "npm@10.9.2"
+}
