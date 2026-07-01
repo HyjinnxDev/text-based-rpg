@@ -10,6 +10,12 @@ export interface MapMarkerData {
   position: { lng: number; lat: number };
 }
 
+const MARKER_COLORS: Record<string, string> = {
+  player: "#c9892e",
+  npc: "#5b9fd4",
+  default: "#9c9285",
+};
+
 export function CampaignMap({
   markers,
   className,
@@ -24,9 +30,7 @@ export function CampaignMap({
     if (!containerRef.current || mapRef.current) return;
 
     const center =
-      markers.length > 0
-        ? markers[0].position
-        : { lng: 12.5, lat: 41.9 };
+      markers.length > 0 ? markers[0].position : { lng: 12.5, lat: 41.9 };
 
     const map = new maplibregl.Map({
       container: containerRef.current,
@@ -35,12 +39,17 @@ export function CampaignMap({
         "https://demotiles.maplibre.org/style.json",
       center: [center.lng, center.lat],
       zoom: 10,
+      touchPitch: false,
     });
 
-    map.addControl(new maplibregl.NavigationControl(), "top-right");
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     mapRef.current = map;
 
+    const onResize = () => map.resize();
+    window.addEventListener("resize", onResize);
+
     return () => {
+      window.removeEventListener("resize", onResize);
       map.remove();
       mapRef.current = null;
     };
@@ -55,20 +64,20 @@ export function CampaignMap({
 
       for (const marker of markers) {
         const color =
-          marker.markerType === "player"
-            ? "#f59e0b"
-            : marker.markerType === "npc"
-              ? "#60a5fa"
-              : "#a8a29e";
+          MARKER_COLORS[marker.markerType] ?? MARKER_COLORS.default;
 
         const el = document.createElement("div");
         el.className = "tbrpg-marker";
         el.title = marker.label;
-        el.style.cssText = `width:14px;height:14px;border-radius:9999px;background:${color};border:2px solid white;cursor:pointer;`;
+        el.style.cssText = `width:16px;height:16px;border-radius:9999px;background:${color};border:2px solid white;cursor:pointer;`;
 
         new maplibregl.Marker({ element: el })
           .setLngLat([marker.position.lng, marker.position.lat])
-          .setPopup(new maplibregl.Popup({ offset: 12 }).setText(marker.label))
+          .setPopup(
+            new maplibregl.Popup({ offset: 14, closeButton: false }).setText(
+              marker.label,
+            ),
+          )
           .addTo(map);
       }
     };
@@ -80,7 +89,10 @@ export function CampaignMap({
   return (
     <div
       ref={containerRef}
-      className={className ?? "h-full min-h-[320px] w-full rounded-xl overflow-hidden"}
+      className={
+        className ??
+        "h-full min-h-[240px] w-full overflow-hidden rounded-xl sm:min-h-[320px]"
+      }
     />
   );
 }
