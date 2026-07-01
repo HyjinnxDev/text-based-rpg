@@ -5,6 +5,7 @@ import {
   PutObjectCommand,
   GetObjectCommand,
 } from "@aws-sdk/client-s3";
+import { list, put as blobPut } from "@vercel/blob";
 
 export interface StorageAdapter {
   put(key: string, data: Buffer, contentType: string): Promise<string>;
@@ -16,6 +17,27 @@ export function storageAssetUrl(key: string): string {
   return `/api/assets/${key.split("/").map(encodeURIComponent).join("/")}`;
 }
 
+/** Writable path on Vercel serverless (/var/task is read-only). */
+export function resolveLocalStoragePath(): string {
+  if (process.env.LOCAL_STORAGE_PATH) {
+    return process.env.LOCAL_STORAGE_PATH;
+  }
+  if (process.env.VERCEL) {
+    return "/tmp/tbrpg-storage";
+  }
+  return path.join(process.cwd(), ".storage");
+}
+
+function resolveStorageDriver(): string {
+  if (process.env.STORAGE_DRIVER) {
+    return process.env.STORAGE_DRIVER;
+  }
+  if (process.env.VERCEL && process.env.BLOB_READ_WRITE_TOKEN) {
+    return "blob";
+  }
+  return "local";
+}
+
 export class LocalStorageAdapter implements StorageAdapter {
   constructor(private baseDir: string) {}
 
@@ -24,6 +46,7 @@ export class LocalStorageAdapter implements StorageAdapter {
   }
 
   async put(key: string, data: Buffer, _contentType: string): Promise<string> {
+    await mkdir(this.baseDir, { recursive: true });
     const filePath = this.filePath(key);
     await mkdir(path.dirname(filePath), { recursive: true });
     await writeFile(filePath, data);
@@ -40,6 +63,41 @@ export class LocalStorageAdapter implements StorageAdapter {
 
   getUrl(key: string): string {
     return storageAssetUrl(key);
+  }
+}
+
+export class VercelBlobStorageAdapter implements StorageAdapter {
+  private readonly urls = new Map<string, string>();
+
+  async put(key: string, data: Buffer, contentType: string): Promise<string> {
+    const blob = await blobPut(key, data, {
+      access: "public",
+      contentType,
+      addRandomSuffix: false,
+    });
+    this.urls.set(key, blob.url);
+    return blob.url;
+  }
+
+  async get(key: string): Promise<Buffer | null> {
+    const cached = this.urls.get(key);
+    if (cached) {
+      const res = await fetch(cached);
+      if (res.ok) return Buffer.from(await res.arrayBuffer());
+    }
+
+    const { blobs } = await list({ prefix: key, limit: 20 });
+    const match = blobs.find((b) => b.pathname === key);
+    if (!match) return null;
+
+    this.urls.set(key, match.url);
+    const res = await fetch(match.url);
+    if (!res.ok) return null;
+    return Buffer.from(await res.arrayBuffer());
+  }
+
+  getUrl(key: string): string {
+    return this.urls.get(key) ?? storageAssetUrl(key);
   }
 }
 
@@ -100,7 +158,12 @@ export class S3StorageAdapter implements StorageAdapter {
 }
 
 export function createStorageFromEnv(): StorageAdapter {
-  const driver = process.env.STORAGE_DRIVER ?? "local";
+  const driver = resolveStorageDriver();
+
+  if (driver === "blob") {
+    return new VercelBlobStorageAdapter();
+  }
+
   if (driver === "s3") {
     return new S3StorageAdapter(process.env.S3_BUCKET ?? "tbrpg-assets", {
       endpoint: process.env.S3_ENDPOINT,
@@ -110,7 +173,6 @@ export function createStorageFromEnv(): StorageAdapter {
       forcePathStyle: process.env.S3_FORCE_PATH_STYLE === "true",
     });
   }
-  return new LocalStorageAdapter(
-    process.env.LOCAL_STORAGE_PATH ?? path.join(process.cwd(), ".storage"),
-  );
+
+  return new LocalStorageAdapter(resolveLocalStoragePath());
 }
