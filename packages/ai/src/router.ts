@@ -1,6 +1,7 @@
 import type { AiProvider, AiProviderName, AiTextRequest, AiTextResponse } from "./types";
 import { MockAiProvider } from "./mock-provider";
 import { createLiveProvider } from "./live-providers";
+import { resolveGoogleApiKey } from "./env";
 
 export interface AiRouterConfig {
   primary: AiProviderName;
@@ -55,11 +56,18 @@ export class AiRouter {
 }
 
 export function createAiRouterFromEnv(): AiRouter {
-  const primary = (process.env.AI_PROVIDER ?? "mock") as AiProviderName;
+  const googleApiKey = resolveGoogleApiKey();
+  const envPrimary = process.env.AI_PROVIDER as AiProviderName | undefined;
+  const primary =
+    envPrimary ??
+    (googleApiKey && !process.env.OPENAI_API_KEY && !process.env.ANTHROPIC_API_KEY
+      ? "google"
+      : "mock");
+
   return new AiRouter({
     primary,
     openaiApiKey: process.env.OPENAI_API_KEY,
     anthropicApiKey: process.env.ANTHROPIC_API_KEY,
-    googleApiKey: process.env.GOOGLE_GENERATIVE_AI_API_KEY,
+    googleApiKey,
   });
 }
