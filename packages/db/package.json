@@ -9,6 +9,7 @@
     "migrate": "dotenv -e ../../.env -- prisma migrate deploy",
     "migrate:dev": "dotenv -e ../../.env -- prisma migrate dev",
     "push": "dotenv -e ../../.env -- prisma db push",
+    "push:ci": "prisma db push --skip-generate",
     "studio": "dotenv -e ../../.env -- prisma studio",
     "build": "prisma generate"
   },
