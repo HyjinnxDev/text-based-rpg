@@ -40,9 +40,21 @@ export default async function CampaignsPage() {
                   <p className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
                     {campaign.title}
                   </p>
-                  <Badge variant="muted" className="mt-1.5">
-                    {campaign.status}
-                  </Badge>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                    <Badge variant={campaign.status === "ACTIVE" ? "success" : "muted"} className="capitalize">
+                      {campaign.status.toLowerCase()}
+                    </Badge>
+                    <Badge variant="muted" className="capitalize">
+                      {campaign.mode.toLowerCase()}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      Last played{" "}
+                      {new Intl.DateTimeFormat("en", {
+                        month: "short",
+                        day: "numeric",
+                      }).format(campaign.updatedAt)}
+                    </span>
+                  </div>
                 </div>
                 <ChevronRight
                   className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"

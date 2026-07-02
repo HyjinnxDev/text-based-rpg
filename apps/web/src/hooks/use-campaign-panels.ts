@@ -44,6 +44,7 @@ export interface PanelTurnState {
 
 export interface PanelState {
   viewerRole: "HOST" | "PLAYER" | "OBSERVER";
+  latestNarration: string | null;
   codexEntries: PanelCodexEntry[];
   items: PanelItem[];
   quests: PanelQuest[];
@@ -60,10 +61,18 @@ export function useCampaignPanels(campaignId: string, sceneId?: string) {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Reset synchronously during render when switching campaigns so the panels
+  // don't flash another campaign's data.
+  const [loadedFor, setLoadedFor] = useState(campaignId);
+  if (loadedFor !== campaignId) {
+    setLoadedFor(campaignId);
+    setState(null);
+    setLoading(true);
+  }
+
   const load = useCallback(
     async (isRefresh = false) => {
       if (isRefresh) setRefreshing(true);
-      else setLoading(true);
       try {
         const query = sceneId ? `?sceneId=${encodeURIComponent(sceneId)}` : "";
         const res = await fetch(`/api/campaigns/${campaignId}/state${query}`);
@@ -77,6 +86,7 @@ export function useCampaignPanels(campaignId: string, sceneId?: string) {
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state is set after the fetch resolves, not synchronously
     load();
     const handler = () => load(true);
     window.addEventListener("campaign-updated", handler);

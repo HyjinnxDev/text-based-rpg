@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getOptionalSession } from "@/lib/session";
 import { Button } from "@/components/ui";
+import { SignOutButton } from "@/components/sign-out-button";
 import { LogIn, Scroll, Swords, UserPlus } from "lucide-react";
 
 export async function AppHeader() {
@@ -31,6 +32,7 @@ export async function AppHeader() {
               <span className="hidden max-w-[140px] truncate text-xs text-muted-foreground md:inline md:max-w-[200px]">
                 {session.user.email}
               </span>
+              <SignOutButton />
             </>
           ) : (
             <>

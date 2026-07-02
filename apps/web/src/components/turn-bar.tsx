@@ -43,7 +43,7 @@ export function TurnBar({
           {state.youHaveActed ? (
             <span className="flex items-center gap-1.5 text-muted-foreground">
               <Hourglass className="h-3.5 w-3.5" aria-hidden />
-              You've acted — waiting on{" "}
+              You&apos;ve acted — waiting on{" "}
               {state.waitingOn.map((w) => w.name).join(", ") || "no one"}
             </span>
           ) : (

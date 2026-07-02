@@ -37,7 +37,7 @@ export function InviteButton({ campaignId }: { campaignId: string }) {
           Link copied
         </>
       ) : state === "error" ? (
-        "Host only"
+        "Couldn't copy — retry"
       ) : (
         <>
           <UserPlus className="h-4 w-4" aria-hidden />

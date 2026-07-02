@@ -26,39 +26,78 @@ export function useRealtimeCampaign(campaignId: string, sceneId?: string, partyI
   const [lastResolved, setLastResolved] = useState<ActionResolved | null>(null);
   const [mapMarkers, setMapMarkers] = useState<MapMarker[]>([]);
   const [actionStatus, setActionStatus] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const lastSequenceRef = useRef(0);
+  const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearWatchdog = useCallback(() => {
+    if (watchdogRef.current) {
+      clearTimeout(watchdogRef.current);
+      watchdogRef.current = null;
+    }
+  }, []);
+
+  /** Never leave the composer stuck on "Resolving" — fail after a hard cap. */
+  const armWatchdog = useCallback(() => {
+    clearWatchdog();
+    watchdogRef.current = setTimeout(() => {
+      setActionStatus(null);
+      setActionError(
+        "The world took too long to respond. Your action may not have been applied — try again.",
+      );
+    }, 180_000);
+  }, [clearWatchdog]);
 
   const submitActionRest = useCallback(
     async (intent: string, sceneId?: string) => {
       setActionStatus("processing");
-      const res = await fetch(`/api/campaigns/${campaignId}/actions`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: intent, sceneId }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Action failed");
+      setActionError(null);
+      armWatchdog();
+      try {
+        const res = await fetch(`/api/campaigns/${campaignId}/actions`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: intent, sceneId }),
+          signal: AbortSignal.timeout(170_000),
+        });
+        const data = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(data?.error ?? `Action failed (${res.status})`);
+        }
 
-      setLastResolved({
-        clientRequestId: crypto.randomUUID(),
-        pendingActionId: "",
-        campaignId,
-        sceneId,
-        narration: data.narration,
-        worldTime: data.worldTime,
-        campaignEventSequence: 0,
-        mapMarkers: data.mapMarkers ?? [],
-        codexUpdates: data.codexUpdates ?? [],
-        visibility: { scope: "party" },
-      });
-      if (data.mapMarkers?.length) setMapMarkers(data.mapMarkers);
-      setActionStatus("completed");
+        setLastResolved({
+          clientRequestId: crypto.randomUUID(),
+          pendingActionId: "",
+          campaignId,
+          sceneId,
+          narration: data.narration,
+          worldTime: data.worldTime,
+          campaignEventSequence: 0,
+          mapMarkers: data.mapMarkers ?? [],
+          codexUpdates: data.codexUpdates ?? [],
+          visibility: { scope: "party" },
+        });
+        if (data.mapMarkers?.length) setMapMarkers(data.mapMarkers);
+        setActionStatus("completed");
+      } catch (error) {
+        setActionStatus(null);
+        setActionError(
+          error instanceof DOMException && error.name === "TimeoutError"
+            ? "The world took too long to respond. Your action may not have been applied — try again."
+            : error instanceof Error
+              ? error.message
+              : "Something went wrong resolving your action.",
+        );
+      } finally {
+        clearWatchdog();
+      }
     },
-    [campaignId],
+    [campaignId, armWatchdog, clearWatchdog],
   );
 
   const connect = useCallback(async () => {
     if (!realtimeEnabled) return;
+    setConnecting(true);
 
     const res = await fetch("/api/realtime/token");
     if (!res.ok) return;
@@ -90,21 +129,26 @@ export function useRealtimeCampaign(campaignId: string, sceneId?: string, partyI
   }, [campaignId, sceneId, partyId]);
 
   useEffect(() => {
-    if (!realtimeEnabled) {
-      setConnecting(false);
-      return;
-    }
+    if (!realtimeEnabled) return;
 
-    setConnecting(true);
     const client = clientRef.current;
     const cleanups: Array<() => void> = [];
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- connection state is set from async socket callbacks
     void connect();
 
     cleanups.push(
       client.on("presence:update", (p) => setPresence(p)),
-      client.on("action:status", (s) => setActionStatus(s.status)),
+      client.on("action:status", (s) => {
+        setActionStatus(s.status);
+        if (s.status === "failed") {
+          clearWatchdog();
+          setActionStatus(null);
+          setActionError(s.message ?? "Your action could not be resolved. Try again.");
+        }
+      }),
       client.on("action:resolved", (r) => {
+        clearWatchdog();
         setLastResolved(r);
         lastSequenceRef.current = r.campaignEventSequence;
         setMapMarkers(r.mapMarkers);
@@ -136,7 +180,7 @@ export function useRealtimeCampaign(campaignId: string, sceneId?: string, partyI
       setConnected(false);
       setConnecting(false);
     };
-  }, [campaignId, connect]);
+  }, [campaignId, connect, clearWatchdog]);
 
   const submitAction = useCallback(
     (intent: string, clientRequestId: string, sceneIdArg?: string) => {
@@ -144,6 +188,8 @@ export function useRealtimeCampaign(campaignId: string, sceneId?: string, partyI
         void submitActionRest(intent, sceneIdArg ?? sceneId);
         return;
       }
+      setActionError(null);
+      armWatchdog();
       clientRef.current.send("action:submit", {
         campaignId,
         sceneId: sceneIdArg ?? sceneId,
@@ -152,7 +198,7 @@ export function useRealtimeCampaign(campaignId: string, sceneId?: string, partyI
       });
       setActionStatus("received");
     },
-    [campaignId, sceneId, submitActionRest],
+    [campaignId, sceneId, submitActionRest, armWatchdog],
   );
 
   return {
@@ -163,6 +209,7 @@ export function useRealtimeCampaign(campaignId: string, sceneId?: string, partyI
     lastResolved,
     mapMarkers,
     actionStatus,
+    actionError,
     submitAction,
   };
 }

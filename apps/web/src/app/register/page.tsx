@@ -26,21 +26,26 @@ export default function RegisterPage() {
     setError(null);
     setLoading(true);
 
-    const res = await fetch("/api/auth/sign-up/email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password }),
-    });
+    try {
+      const res = await fetch("/api/auth/sign-up/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
 
-    if (!res.ok) {
-      const data = await res.json();
-      setError(data.message ?? "Registration failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError(data?.message ?? "Registration failed");
+        setLoading(false);
+        return;
+      }
+
+      router.push("/campaigns");
+      router.refresh();
+    } catch {
+      setError("Could not reach the server. Please try again.");
       setLoading(false);
-      return;
     }
-
-    router.push("/campaigns");
-    router.refresh();
   }
 
   return (

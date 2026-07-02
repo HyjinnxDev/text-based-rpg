@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Button,
   Card,
@@ -75,8 +75,8 @@ export function ScenePanel({
   connecting,
   realtimeEnabled,
   actionStatus,
+  actionError,
   narration,
-  onNarrationChange,
   onSubmit,
   compact,
 }: {
@@ -84,20 +84,31 @@ export function ScenePanel({
   connecting?: boolean;
   realtimeEnabled: boolean;
   actionStatus: string | null;
+  actionError?: string | null;
   narration: string;
-  onNarrationChange: (value: string) => void;
   onSubmit: (action: string) => void;
   compact?: boolean;
 }) {
   const [action, setAction] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const loading =
     actionStatus === "received" ||
     actionStatus === "queued" ||
     actionStatus === "processing";
 
+  // Put the cursor back in the composer once the action resolves (or fails)
+  // so the player can keep typing without reaching for the mouse.
+  const prevLoadingRef = useRef(loading);
+  useEffect(() => {
+    if (prevLoadingRef.current && !loading) {
+      textareaRef.current?.focus();
+    }
+    prevLoadingRef.current = loading;
+  }, [loading]);
+
   function handleSubmit() {
     const trimmed = action.trim();
-    if (!trimmed) return;
+    if (!trimmed || loading) return;
     onSubmit(trimmed);
     setAction("");
   }
@@ -148,16 +159,23 @@ export function ScenePanel({
       <div className="space-y-3">
         {actionStatus && loading && <ActionProgress status={actionStatus} />}
 
+        {actionError && !loading && (
+          <p
+            className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            role="alert"
+          >
+            {actionError}
+          </p>
+        )}
+
         <Textarea
+          ref={textareaRef}
           rows={compact ? 3 : 4}
           placeholder={loading ? "Waiting for the world to respond…" : "What do you do?"}
           value={action}
-          onChange={(e) => {
-            setAction(e.target.value);
-            onNarrationChange(e.target.value);
-          }}
+          onChange={(e) => setAction(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
               e.preventDefault();
               handleSubmit();
             }
@@ -172,15 +190,25 @@ export function ScenePanel({
           </p>
         )}
 
-        <Button
-          onClick={handleSubmit}
-          disabled={loading || connecting || !connected || !action.trim()}
-          loading={loading}
-          className="w-full sm:w-auto"
-          size="lg"
-        >
-          {loading ? "Resolving…" : "Take action"}
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <Button
+            onClick={handleSubmit}
+            disabled={loading || connecting || !connected || !action.trim()}
+            loading={loading}
+            className="w-full sm:w-auto"
+            size="lg"
+          >
+            {loading ? "Resolving…" : "Take action"}
+          </Button>
+          <p className="hidden text-xs text-muted-foreground sm:block">
+            <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-sans">Enter</kbd>{" "}
+            to send ·{" "}
+            <kbd className="rounded border border-border bg-muted px-1 py-0.5 font-sans">
+              Shift+Enter
+            </kbd>{" "}
+            for a new line
+          </p>
+        </div>
       </div>
     </Card>
   );

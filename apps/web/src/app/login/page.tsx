@@ -17,21 +17,26 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
 
-    const res = await fetch("/api/auth/sign-in/email", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    try {
+      const res = await fetch("/api/auth/sign-in/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!res.ok) {
-      const data = await res.json();
-      setError(data.message ?? "Login failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        setError(data?.message ?? "Login failed");
+        setLoading(false);
+        return;
+      }
+
+      router.push("/campaigns");
+      router.refresh();
+    } catch {
+      setError("Could not reach the server. Please try again.");
       setLoading(false);
-      return;
     }
-
-    router.push("/campaigns");
-    router.refresh();
   }
 
   return (

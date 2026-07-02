@@ -49,7 +49,6 @@ export default function CampaignPlayPage() {
   const campaignId = params.id;
   const [campaign, setCampaign] = useState<CampaignData | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
-  const [narration, setNarration] = useState("");
   const [mobileTab, setMobileTab] = useState<PlayTab>("scene");
   const activeSceneId = campaign?.scenes[0]?.id;
 
@@ -61,6 +60,7 @@ export default function CampaignPlayPage() {
     lastResolved,
     mapMarkers: liveMarkers,
     actionStatus,
+    actionError,
     submitAction,
   } = useRealtimeCampaign(campaignId, activeSceneId);
 
@@ -71,12 +71,24 @@ export default function CampaignPlayPage() {
     refresh: refreshPanels,
   } = useCampaignPanels(campaignId, activeSceneId);
 
+  // Freshest resolved action wins; otherwise show where the story left off
+  // (last event / opening situation) so a reload never lands on a blank scene.
+  const narration = lastResolved?.narration ?? panels?.latestNarration ?? "";
+
   useEffect(() => {
     if (lastResolved?.narration) {
-      setNarration(lastResolved.narration);
       window.dispatchEvent(new CustomEvent("campaign-updated"));
     }
   }, [lastResolved]);
+
+  // Reset synchronously when navigating between campaigns (state-during-render
+  // pattern, see react.dev "adjusting state when props change").
+  const [loadedFor, setLoadedFor] = useState(campaignId);
+  if (loadedFor !== campaignId) {
+    setLoadedFor(campaignId);
+    setLoadState("loading");
+    setCampaign(null);
+  }
 
   async function loadCampaign() {
     const res = await fetch(`/api/campaigns/${campaignId}`);
@@ -127,12 +139,12 @@ export default function CampaignPlayPage() {
   }
 
   useEffect(() => {
-    setLoadState("loading");
-    setCampaign(null);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- state is set after the fetch resolves, not synchronously
     loadCampaign();
     const handler = () => loadCampaign();
     window.addEventListener("campaign-updated", handler);
     return () => window.removeEventListener("campaign-updated", handler);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- loadCampaign only depends on campaignId
   }, [campaignId]);
 
   // Art (map tiles, portraits, landscape) renders in the background after
@@ -237,8 +249,8 @@ export default function CampaignPlayPage() {
                 connecting={connecting}
                 realtimeEnabled={realtimeEnabled}
                 actionStatus={actionStatus}
+                actionError={actionError}
                 narration={narration}
-                onNarrationChange={() => {}}
                 onSubmit={(action) => submitAction(action, crypto.randomUUID())}
                 compact
               />
@@ -304,8 +316,8 @@ export default function CampaignPlayPage() {
             connecting={connecting}
             realtimeEnabled={realtimeEnabled}
             actionStatus={actionStatus}
+            actionError={actionError}
             narration={narration}
-            onNarrationChange={() => {}}
             onSubmit={(action) => submitAction(action, crypto.randomUUID())}
           />
         </div>

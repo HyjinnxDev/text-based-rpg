@@ -103,20 +103,25 @@ export default function NewCampaignPage() {
               ...shared,
             };
 
-    const res = await fetch("/api/campaigns", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const res = await fetch("/api/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.error ?? "Failed to create campaign");
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Failed to create campaign");
+        setLoading(false);
+        return;
+      }
+
+      router.push(`/campaigns/${data.campaign.id}`);
+    } catch {
+      setError("Something went wrong creating the campaign. Please try again.");
       setLoading(false);
-      return;
     }
-
-    router.push(`/campaigns/${data.campaign.id}`);
   }
 
   const activeMode = MODES.find((m) => m.id === mode)!;
@@ -269,7 +274,7 @@ export default function NewCampaignPage() {
           </div>
 
           <div className="space-y-2">
-            <Label>Who's playing?</Label>
+            <Label>Who&apos;s playing?</Label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -321,8 +326,14 @@ export default function NewCampaignPage() {
           loading={loading}
         >
           {!loading && <Sparkles className="h-4 w-4" aria-hidden />}
-          {loading ? "Generating world & artwork…" : "Generate campaign"}
+          {loading ? "Generating your world…" : "Generate campaign"}
         </Button>
+        {loading && (
+          <p className="mt-3 text-sm text-muted-foreground" role="status">
+            Building the world, characters, and opening scene — this usually takes
+            under a minute. Artwork keeps rendering after you start playing.
+          </p>
+        )}
       </Card>
     </main>
   );

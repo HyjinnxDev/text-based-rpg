@@ -6,6 +6,10 @@ import { getAiRouter } from "@/lib/ai";
 
 type Ctx = { params: Promise<{ id: string }> };
 
+// AI scene resolution can take well over the default function limit — without
+// this the platform kills the request and the client hangs on "Resolving".
+export const maxDuration = 300;
+
 /**
  * REST fallback for environments without the dedicated realtime service (e.g. Vercel-only).
  * Production multiplayer should use realtime `action:submit` when NEXT_PUBLIC_REALTIME_URL is set.

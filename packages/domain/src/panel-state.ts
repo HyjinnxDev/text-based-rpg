@@ -13,7 +13,7 @@ export async function getCampaignPanelState(
 ) {
   const { memberRole } = await assertCampaignAccess(campaignId, userId, "OBSERVER");
 
-  const [codexEntries, items, quests, members, characters, turns] = await Promise.all([
+  const [codexEntries, items, quests, members, characters, turns, latestEvent] = await Promise.all([
     prisma.codexEntry.findMany({
       where: { campaignId },
       orderBy: { updatedAt: "desc" },
@@ -38,12 +38,27 @@ export async function getCampaignPanelState(
     sceneId
       ? getTurnStateWithRole(campaignId, userId, sceneId, memberRole)
       : Promise.resolve(null),
+    prisma.campaignEvent.findFirst({
+      where: { campaignId, eventType: "state.applied" },
+      orderBy: { sequence: "desc" },
+      select: { stateDelta: true },
+    }),
   ]);
 
   const characterNames = new Map(characters.map((c) => [c.userId!, c.name]));
 
+  // Where the story left off: last resolved narration, or the generated
+  // opening situation for a campaign nobody has acted in yet.
+  const latestNarration =
+    (latestEvent?.stateDelta as { narration?: string } | null)?.narration ??
+    (codexEntries.find((e) => e.slug === "current-situation")?.content as
+      | { body?: string }
+      | undefined)?.body ??
+    null;
+
   return {
     viewerRole: memberRole,
+    latestNarration,
     codexEntries,
     items,
     quests,
