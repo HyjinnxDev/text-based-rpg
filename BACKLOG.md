@@ -15,7 +15,6 @@ Rules for each iteration:
 
 ## Phase B — Expose built backends in the UI (quick wins)
 
-- [ ] B3. Campaign creation modes in UI: random + custom (API already supports; UI only has "rough idea").
 - [ ] B4. Character naming at campaign creation (currently auto-named "Adventurer").
 - [ ] B5. Inventory/items panel in play view (state engine already updates items).
 - [ ] B6. Quests panel in play view (state engine already updates quests).
@@ -54,6 +53,8 @@ Rules for each iteration:
 - [ ] F4. Admin dashboard.
 
 ## Done
+
+- [x] B3. (2026-07-02) New-campaign page now has Rough idea / Random / Custom mode tabs matching `createCampaignSchema`; random takes optional tone/genre, custom takes title/premise/setting/tone/genre with client-side validation mirroring the schema minimums. Build + lints clean.
 
 - [x] B1+B2. (2026-07-02) Delete + export buttons on campaign cards (`campaign-card-actions.tsx`): two-step delete confirm calling `DELETE /api/campaigns/:id`, export via `GET /api/campaigns/:id/export` download link. Build + lints clean.
 - [x] A2. (2026-07-02) Merged PR #3 to master (Vercel check green, merge state CLEAN). Visual test-plan items best verified on the live deploy.
