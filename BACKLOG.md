@@ -15,7 +15,6 @@ Rules for each iteration:
 
 ## Phase B — Expose built backends in the UI (quick wins)
 
-- [ ] B4. Character naming at campaign creation (currently auto-named "Adventurer").
 - [ ] B5. Inventory/items panel in play view (state engine already updates items).
 - [ ] B6. Quests panel in play view (state engine already updates quests).
 - [ ] B7. NPC panel with memory/mood display (data already stored).
@@ -53,6 +52,8 @@ Rules for each iteration:
 - [ ] F4. Admin dashboard.
 
 ## Done
+
+- [x] B4. (2026-07-02) Optional `characterName` (1–80 chars) added to all three `createCampaignSchema` variants, threaded through `seedGeneratedWorld` (character + map marker label) and the Gemini portrait prompt; UI input on new-campaign page for all modes, blank falls back to "Adventurer". Tests + build clean.
 
 - [x] B3. (2026-07-02) New-campaign page now has Rough idea / Random / Custom mode tabs matching `createCampaignSchema`; random takes optional tone/genre, custom takes title/premise/setting/tone/genre with client-side validation mirroring the schema minimums. Build + lints clean.
 

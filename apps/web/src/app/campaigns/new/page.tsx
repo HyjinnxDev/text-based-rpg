@@ -61,6 +61,7 @@ export default function NewCampaignPage() {
   const [title, setTitle] = useState("");
   const [premise, setPremise] = useState("");
   const [setting, setSetting] = useState("");
+  const [characterName, setCharacterName] = useState("");
 
   const canSubmit =
     mode === "rough_idea"
@@ -77,15 +78,19 @@ export default function NewCampaignPage() {
     setLoading(true);
     setError(null);
 
+    const shared = {
+      characterName: characterName.trim() || undefined,
+      mode: "SOLO",
+    };
     const payload =
       mode === "rough_idea"
-        ? { generationMode: "rough_idea", roughIdea, mode: "SOLO" }
+        ? { generationMode: "rough_idea", roughIdea, ...shared }
         : mode === "random"
           ? {
               generationMode: "random",
               tone: tone.trim() || undefined,
               genre: genre.trim() || undefined,
-              mode: "SOLO",
+              ...shared,
             }
           : {
               generationMode: "custom",
@@ -94,7 +99,7 @@ export default function NewCampaignPage() {
               setting: setting.trim(),
               tone: tone.trim(),
               genre: genre.trim(),
-              mode: "SOLO",
+              ...shared,
             };
 
     const res = await fetch("/api/campaigns", {
@@ -251,6 +256,16 @@ export default function NewCampaignPage() {
               </div>
             </>
           )}
+          <div className="space-y-2">
+            <Label htmlFor="character-name">Character name (optional)</Label>
+            <Input
+              id="character-name"
+              value={characterName}
+              onChange={(e) => setCharacterName(e.target.value)}
+              maxLength={80}
+              placeholder="Leave blank for “Adventurer”"
+            />
+          </div>
         </div>
 
         {error && (

@@ -27,6 +27,7 @@ export const createCampaignSchema = z.discriminatedUnion("generationMode", [
     roughIdea: z.string().min(10).max(2000),
     title: z.string().min(1).max(200).optional(),
     tone: z.string().optional(),
+    characterName: z.string().min(1).max(80).optional(),
     mode: z.enum(["SOLO", "PARTY", "SHARED_WORLD"]).default("SOLO"),
   }),
   z.object({
@@ -34,6 +35,7 @@ export const createCampaignSchema = z.discriminatedUnion("generationMode", [
     title: z.string().min(1).max(200).optional(),
     tone: z.string().optional(),
     genre: z.string().optional(),
+    characterName: z.string().min(1).max(80).optional(),
     mode: z.enum(["SOLO", "PARTY", "SHARED_WORLD"]).default("SOLO"),
   }),
   z.object({
@@ -43,6 +45,7 @@ export const createCampaignSchema = z.discriminatedUnion("generationMode", [
     tone: z.string(),
     genre: z.string(),
     setting: z.string().min(10),
+    characterName: z.string().min(1).max(80).optional(),
     mode: z.enum(["SOLO", "PARTY", "SHARED_WORLD"]).default("SOLO"),
   }),
 ]);

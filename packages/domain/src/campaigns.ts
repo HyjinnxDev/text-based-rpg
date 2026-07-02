@@ -16,6 +16,7 @@ async function seedGeneratedWorld(
   campaignId: string,
   userId: string,
   generated: GeneratedCampaign,
+  characterName?: string,
 ) {
   const startLocation = await prisma.location.create({
     data: {
@@ -37,7 +38,7 @@ async function seedGeneratedWorld(
       campaignId,
       userId,
       isPlayerCharacter: true,
-      name: "Adventurer",
+      name: characterName?.trim() || "Adventurer",
       profile: { background: "A newcomer to the harbor." },
       locationId: startLocation.id,
     },
@@ -258,7 +259,12 @@ export async function createCampaign(
     return updated;
   });
 
-  const world = await seedGeneratedWorld(campaign.id, userId, generated);
+  const world = await seedGeneratedWorld(
+    campaign.id,
+    userId,
+    generated,
+    input.characterName,
+  );
 
   let art = { mapConfig: null as import("@tbrpg/shared").CampaignMapConfig | null, portraitsGenerated: 0 };
   if (options?.imageRouter && options?.storage) {

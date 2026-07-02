@@ -125,7 +125,7 @@ export async function generateCampaignArt(
       const result = await imageRouter.generateImage({
         taskType: "character_portrait",
         prompt: buildImagePrompt("character_portrait", {
-          name: "Adventurer",
+          name: input.createInput.characterName?.trim() || "Adventurer",
           description: "A newcomer ready for adventure",
           tone,
         }),
