@@ -2,7 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Card, Input, Textarea } from "@/components/ui";
+import Link from "next/link";
+import {
+  Button,
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Label,
+  Textarea,
+} from "@/components/ui";
+import { ArrowLeft, Sparkles } from "lucide-react";
 
 export default function NewCampaignPage() {
   const router = useRouter();
@@ -37,18 +47,50 @@ export default function NewCampaignPage() {
   }
 
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
+    <main className="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12">
+      <Link
+        href="/campaigns"
+        className="mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" aria-hidden />
+        Back to campaigns
+      </Link>
+
       <Card>
-        <h1 className="text-xl font-semibold">New campaign from a rough idea</h1>
-        <Textarea
-          className="mt-4"
-          rows={6}
-          value={roughIdea}
-          onChange={(e) => setRoughIdea(e.target.value)}
-        />
-        {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
-        <Button className="mt-4" onClick={createCampaign} disabled={loading}>
-          {loading ? "Generating world & artwork..." : "Generate campaign"}
+        <CardHeader>
+          <CardTitle className="text-xl sm:text-2xl">New campaign</CardTitle>
+          <CardDescription>
+            Describe a rough idea and the AI will generate your world, characters, and opening scene.
+          </CardDescription>
+        </CardHeader>
+
+        <div className="mt-6 space-y-2">
+          <Label htmlFor="rough-idea">Your rough idea</Label>
+          <Textarea
+            id="rough-idea"
+            rows={6}
+            value={roughIdea}
+            onChange={(e) => setRoughIdea(e.target.value)}
+            placeholder="A haunted lighthouse on a storm-wracked coast where time moves differently…"
+            className="min-h-[160px]"
+          />
+        </div>
+
+        {error && (
+          <p className="mt-4 rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+            {error}
+          </p>
+        )}
+
+        <Button
+          className="mt-6 w-full sm:w-auto"
+          size="lg"
+          onClick={createCampaign}
+          disabled={!roughIdea.trim()}
+          loading={loading}
+        >
+          {!loading && <Sparkles className="h-4 w-4" aria-hidden />}
+          {loading ? "Generating world & artwork…" : "Generate campaign"}
         </Button>
       </Card>
     </main>

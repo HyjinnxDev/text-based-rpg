@@ -3,7 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button, Card, Input } from "@/components/ui";
+import {
+  Button,
+  Card,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  Input,
+  Label,
+} from "@/components/ui";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -11,10 +19,12 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setLoading(true);
 
     const res = await fetch("/api/auth/sign-up/email", {
       method: "POST",
@@ -25,6 +35,7 @@ export default function RegisterPage() {
     if (!res.ok) {
       const data = await res.json();
       setError(data.message ?? "Registration failed");
+      setLoading(false);
       return;
     }
 
@@ -33,39 +44,63 @@ export default function RegisterPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md items-center px-6">
+    <main className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-md items-center px-4 py-8 sm:px-6">
       <Card className="w-full">
-        <h1 className="text-xl font-semibold">Create account</h1>
-        <form onSubmit={onSubmit} className="mt-4 space-y-3">
-          <Input
-            placeholder="Display name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <Input
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <Input
-            type="password"
-            placeholder="Password (min 8 chars)"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            minLength={8}
-            required
-          />
-          {error && <p className="text-sm text-red-400">{error}</p>}
-          <Button type="submit" className="w-full">
+        <CardHeader>
+          <CardTitle className="text-xl sm:text-2xl">Create account</CardTitle>
+          <CardDescription>Begin your first adventure</CardDescription>
+        </CardHeader>
+
+        <form onSubmit={onSubmit} className="mt-6 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="name">Display name</Label>
+            <Input
+              id="name"
+              placeholder="Adventurer"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              autoComplete="name"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="email"
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <Input
+              id="password"
+              type="password"
+              placeholder="Min. 8 characters"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="new-password"
+              minLength={8}
+              required
+            />
+          </div>
+          {error && (
+            <p className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">
+              {error}
+            </p>
+          )}
+          <Button type="submit" className="w-full" size="lg" loading={loading}>
             Register
           </Button>
         </form>
-        <p className="mt-4 text-sm text-stone-500">
+
+        <p className="mt-6 text-center text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link href="/login" className="text-amber-500 hover:underline">
+          <Link href="/login" className="font-medium text-primary hover:underline">
             Sign in
           </Link>
         </p>
