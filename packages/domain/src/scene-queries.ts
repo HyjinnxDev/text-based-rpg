@@ -1,8 +1,12 @@
 import { prisma } from "@tbrpg/db";
 import { assertCampaignAccess, NotFoundError } from "./permissions";
+import { assertSceneAccess } from "./scene-access";
 
 export async function getSceneState(campaignId: string, userId: string, sceneId: string) {
-  await assertCampaignAccess(campaignId, userId, "OBSERVER");
+  const { memberRole } = await assertCampaignAccess(campaignId, userId, "OBSERVER");
+
+  const accessible = await assertSceneAccess(sceneId, campaignId, userId, memberRole);
+  if (!accessible) throw new NotFoundError("Scene", sceneId);
 
   const scene = await prisma.scene.findFirst({
     where: { id: sceneId, campaignId },

@@ -20,7 +20,6 @@ Rules for each iteration:
 
 ## Phase C — Multiplayer core
 
-- [ ] C4. Scene scoping for parties: who sees which scene, private scenes.
 - [ ] C5. Turn handling for parties (simultaneous or ordered action resolution) — design then implement.
 
 ## Phase D — Host & account tools
@@ -47,6 +46,8 @@ Rules for each iteration:
 - [ ] F4. Admin dashboard.
 
 ## Done
+
+- [x] C4. (2026-07-02) Scene scoping enforced server-side: new `scene-access.ts` (`sceneVisibilityWhere` filter — hosts see all, players see PUBLIC/PARTY + scenes they participate in; `assertSceneAccess` guard). Applied to `getCampaign` scene list, `getSceneState`, and `submitActionIntent` (with reservation release on denial). Unit tests added; all tests + build clean.
 
 - [x] C3. (2026-07-02) Members bar on party campaign header: `members.ts` domain module (`listCampaignMembers` with viewer role + character names, `removeCampaignMember` host-only transaction cleaning up characters/markers/scene participants + `member.removed` event), API `GET /members` and `DELETE /members/:userId`, chip UI with host crown and two-step remove confirm. Tests + build clean.
 

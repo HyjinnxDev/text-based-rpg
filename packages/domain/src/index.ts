@@ -6,6 +6,7 @@ export * from "./invites";
 export * from "./members";
 export * from "./campaign-art";
 export * from "./scenes";
+export * from "./scene-access";
 export * from "./action-resolver";
 export * from "./broadcast";
 export * from "./redis";

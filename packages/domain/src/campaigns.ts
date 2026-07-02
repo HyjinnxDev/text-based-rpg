@@ -7,6 +7,7 @@ import type { StorageAdapter } from "@tbrpg/storage";
 import { assertCampaignAccess, assertHost, NotFoundError } from "./permissions";
 import { appendCampaignEvent } from "./event-log";
 import { generateCampaignArt } from "./campaign-art";
+import { sceneVisibilityWhere } from "./scene-access";
 
 function toPrismaGenerationMode(mode: CreateCampaignInput["generationMode"]) {
   return mode.toUpperCase() as "RANDOM" | "ROUGH_IDEA" | "CUSTOM";
@@ -308,7 +309,7 @@ export async function listCampaigns(userId: string) {
 }
 
 export async function getCampaign(campaignId: string, userId: string) {
-  await assertCampaignAccess(campaignId, userId, "OBSERVER");
+  const { memberRole } = await assertCampaignAccess(campaignId, userId, "OBSERVER");
   const campaign = await prisma.campaign.findUnique({
     where: { id: campaignId },
     include: {
@@ -317,7 +318,10 @@ export async function getCampaign(campaignId: string, userId: string) {
       npcs: true,
       mapMarkers: true,
       codexEntries: { orderBy: { updatedAt: "desc" }, take: 20 },
-      scenes: { where: { status: "ACTIVE" }, take: 5 },
+      scenes: {
+        where: { status: "ACTIVE", ...sceneVisibilityWhere(userId, memberRole) },
+        take: 5,
+      },
     },
   });
   if (!campaign) throw new NotFoundError("Campaign", campaignId);

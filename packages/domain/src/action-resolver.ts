@@ -3,6 +3,7 @@ import { stateDeltaSchema } from "@tbrpg/shared";
 import type { AiRouter } from "@tbrpg/ai";
 import { buildScenePrompt } from "@tbrpg/ai";
 import { assertCampaignAccess, NotFoundError } from "./permissions";
+import { assertSceneAccess, sceneVisibilityWhere } from "./scene-access";
 import { applyStateDelta, validateStateDelta } from "./state-update";
 import { appendCampaignEvent } from "./event-log";
 import { planBroadcast, sceneScopeToVisibility } from "./broadcast";
@@ -44,7 +45,11 @@ export interface ConfirmedActionResult {
 
 /** Step 1–2: Validate and queue intent (no AI, no state mutation) */
 export async function submitActionIntent(input: ActionIntentInput) {
-  const { campaign } = await assertCampaignAccess(input.campaignId, input.userId, "PLAYER");
+  const { campaign, memberRole } = await assertCampaignAccess(
+    input.campaignId,
+    input.userId,
+    "PLAYER",
+  );
 
   const reserved = await reserveActionSlot(
     input.campaignId,
@@ -55,17 +60,24 @@ export async function submitActionIntent(input: ActionIntentInput) {
     throw new Error("You already have an action in progress");
   }
 
-  const scene =
-    input.sceneId != null
-      ? await prisma.scene.findFirst({
-          where: { id: input.sceneId, campaignId: input.campaignId },
-        })
-      : await prisma.scene.findFirst({
-          where: { campaignId: input.campaignId, status: "ACTIVE" },
-          orderBy: { updatedAt: "desc" },
-        });
-
-  if (!scene) throw new NotFoundError("Scene", input.sceneId ?? "active");
+  let scene;
+  try {
+    scene =
+      input.sceneId != null
+        ? await assertSceneAccess(input.sceneId, input.campaignId, input.userId, memberRole)
+        : await prisma.scene.findFirst({
+            where: {
+              campaignId: input.campaignId,
+              status: "ACTIVE",
+              ...sceneVisibilityWhere(input.userId, memberRole),
+            },
+            orderBy: { updatedAt: "desc" },
+          });
+    if (!scene) throw new NotFoundError("Scene", input.sceneId ?? "active");
+  } catch (error) {
+    await releaseActionReservation(input.campaignId, input.userId);
+    throw error;
+  }
 
   const pending = await prisma.pendingAction.create({
     data: {
