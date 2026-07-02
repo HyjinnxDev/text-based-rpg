@@ -13,6 +13,13 @@ Rules for each iteration:
 ## Phase A — Unblock what's in flight
 
 
+## Phase P — Performance (current priority)
+
+- [ ] P2. Consolidate play-page client fetches: codex/journal/members/turns each refetch the whole list on every `campaign-updated` event — combine into one `state` endpoint or dedupe with a shared cache.
+- [ ] P3. Dynamic-import `maplibre-gl` (heavy) so the play page renders before the map bundle loads.
+- [ ] P4. Trim `getCampaign` payload: select only fields the play page uses (characters/npcs currently return full rows including profiles).
+- [ ] P5. Review Prisma indexes for hot queries (events by campaign+sequence, actions by campaign+user).
+
 ## Phase B — Expose built backends in the UI (quick wins)
 
 - [ ] B7. NPC panel with memory/mood display (data already stored).
@@ -42,6 +49,8 @@ Rules for each iteration:
 - [ ] F4. Admin dashboard.
 
 ## Done
+
+- [x] P1. (2026-07-02) Fast campaign creation + parallel pipelines: art generation (map/tiles/landscape/portraits) moved out of the request path into Next.js `after()` — response returns as soon as the world is seeded; play page polls briefly until the map appears. `seedGeneratedWorld` batched with `createMany`/`Promise.all`; map/landscape/portrait jobs and tile uploads now run concurrently (`Promise.allSettled` so one failure doesn't sink the rest); action resolver parallelizes pre-AI reads and post-transaction fetches; `maxDuration=300` on the campaigns route. Tests + build clean.
 
 - [x] C5. (2026-07-02) Turn handling: opt-in per-scene rounds mode (design: free-form default preserved; rounds = one action per player per round, auto-advance when all HOST/PLAYER members have acted). `turns.ts` domain module (turn meta in scene metadata, `assertMayActThisRound` gate in submit, `recordTurnAction` in resolve transaction, `turn.round_advanced`/`turn.mode_changed` events), API `GET/PUT /scenes/:sceneId/turns` (PUT host-only), `TurnBar` UI with round status + host toggle. 4 new unit tests; all 31 tests + build clean.
 

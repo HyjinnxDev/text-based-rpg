@@ -113,6 +113,22 @@ export default function CampaignPlayPage() {
     return () => window.removeEventListener("campaign-updated", handler);
   }, [campaignId]);
 
+  // Art (map tiles, portraits, landscape) renders in the background after
+  // creation — poll briefly until the map config shows up, then stop.
+  useEffect(() => {
+    if (loadState !== "ready" || campaign?.mapConfig) return;
+    let attempts = 0;
+    const timer = setInterval(() => {
+      attempts += 1;
+      if (attempts > 10) {
+        clearInterval(timer);
+        return;
+      }
+      loadCampaign();
+    }, 12000);
+    return () => clearInterval(timer);
+  }, [loadState, campaign?.mapConfig]);
+
   if (loadState === "loading") {
     return <CampaignPlaySkeleton />;
   }

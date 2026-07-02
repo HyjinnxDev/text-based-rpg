@@ -125,28 +125,27 @@ export async function resolveActionIntent(
     });
 
     try {
-      const { campaign } = await assertCampaignAccess(campaignId, userId, "PLAYER");
-
-      const character = await prisma.character.findFirst({
-        where: { campaignId, userId, isPlayerCharacter: true },
-      });
+      const [{ campaign }, character, scene, recentEvents] = await Promise.all([
+        assertCampaignAccess(campaignId, userId, "PLAYER"),
+        prisma.character.findFirst({
+          where: { campaignId, userId, isPlayerCharacter: true },
+        }),
+        sceneId
+          ? prisma.scene.findFirst({ where: { id: sceneId, campaignId } })
+          : Promise.resolve(null),
+        prisma.campaignEvent.findMany({
+          where: { campaignId },
+          orderBy: { sequence: "desc" },
+          take: 5,
+          select: { eventType: true },
+        }),
+      ]);
       if (!character) throw new NotFoundError("Character", userId);
-
-      const scene = sceneId
-        ? await prisma.scene.findFirst({ where: { id: sceneId, campaignId } })
-        : null;
       if (!scene) throw new NotFoundError("Scene", sceneId ?? "unknown");
 
       const location = scene.locationId
         ? await prisma.location.findUnique({ where: { id: scene.locationId } })
         : null;
-
-      const recentEvents = await prisma.campaignEvent.findMany({
-        where: { campaignId },
-        orderBy: { sequence: "desc" },
-        take: 5,
-        select: { eventType: true },
-      });
 
       const response = await ai.generateText({
         taskType: "scene_resolution",
@@ -203,12 +202,14 @@ export async function resolveActionIntent(
         return result;
       });
 
-      const mapMarkers = await prisma.mapMarker.findMany({ where: { campaignId } });
-      const codex = await prisma.codexEntry.findMany({
-        where: { campaignId },
-        orderBy: { updatedAt: "desc" },
-        take: 10,
-      });
+      const [mapMarkers, codex] = await Promise.all([
+        prisma.mapMarker.findMany({ where: { campaignId } }),
+        prisma.codexEntry.findMany({
+          where: { campaignId },
+          orderBy: { updatedAt: "desc" },
+          take: 10,
+        }),
+      ]);
 
       const broadcast = planBroadcast({
         campaignId,

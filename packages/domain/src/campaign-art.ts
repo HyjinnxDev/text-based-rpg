@@ -40,36 +40,41 @@ export async function generateCampaignArt(
   let mapConfig: CampaignMapConfig | null = null;
   let portraitsGenerated = 0;
 
-  const mapResult = await imageRouter.generateImage({
-    taskType: "campaign_map",
-    prompt: buildImagePrompt("campaign_map", {
-      title: input.generated.title,
-      premise: input.generated.premise,
-      tone,
-      genre,
-      regions: input.generated.regions,
-    }),
-    aspectRatio: "1:1",
-  });
+  const mapJob = (async () => {
+    const mapResult = await imageRouter.generateImage({
+      taskType: "campaign_map",
+      prompt: buildImagePrompt("campaign_map", {
+        title: input.generated.title,
+        premise: input.generated.premise,
+        tone,
+        genre,
+        regions: input.generated.regions,
+      }),
+      aspectRatio: "1:1",
+    });
+    if (!mapResult) return;
 
-  if (mapResult) {
     const { normalized, tiles, width, height } = await sliceMapIntoTiles(
       Buffer.from(mapResult.data),
     );
 
     const mapKey = mapStorageKey(input.campaignId, "map.webp");
-    await storage.put(mapKey, normalized, "image/webp");
-
-    for (const tile of tiles) {
-      const tileKey = mapStorageKey(
-        input.campaignId,
-        "tiles",
-        String(tile.z),
-        String(tile.x),
-        `${tile.y}.webp`,
-      );
-      await storage.put(tileKey, tile.data, "image/webp");
-    }
+    await Promise.all([
+      storage.put(mapKey, normalized, "image/webp"),
+      ...tiles.map((tile) =>
+        storage.put(
+          mapStorageKey(
+            input.campaignId,
+            "tiles",
+            String(tile.z),
+            String(tile.x),
+            `${tile.y}.webp`,
+          ),
+          tile.data,
+          "image/webp",
+        ),
+      ),
+    ]);
 
     const imageUrl = storage.getUrl(mapKey);
     const tileUrlTemplate = `/api/campaigns/${input.campaignId}/maps/{z}/{x}/{y}.webp`;
@@ -83,28 +88,33 @@ export async function generateCampaignArt(
       tileUrlTemplate,
     };
 
+    const current = await prisma.campaign.findUnique({
+      where: { id: input.campaignId },
+      select: { settings: true },
+    });
     await prisma.campaign.update({
       where: { id: input.campaignId },
       data: {
         settings: {
-          ...((await prisma.campaign.findUnique({ where: { id: input.campaignId } }))?.settings as object ?? {}),
+          ...((current?.settings as object) ?? {}),
           map: mapConfig,
         },
       },
     });
-  }
+  })();
 
-  const landscapeResult = await imageRouter.generateImage({
-    taskType: "location_landscape",
-    prompt: buildImagePrompt("location_landscape", {
-      locationName: input.generated.startingLocation.name,
-      description: input.generated.startingLocation.description,
-      tone,
-    }),
-    aspectRatio: "16:9",
-  });
+  const landscapeJob = (async () => {
+    const landscapeResult = await imageRouter.generateImage({
+      taskType: "location_landscape",
+      prompt: buildImagePrompt("location_landscape", {
+        locationName: input.generated.startingLocation.name,
+        description: input.generated.startingLocation.description,
+        tone,
+      }),
+      aspectRatio: "16:9",
+    });
+    if (!landscapeResult) return;
 
-  if (landscapeResult) {
     const webp = await toWebp(Buffer.from(landscapeResult.data));
     const key = mapStorageKey(input.campaignId, "landscapes", `${input.startLocationId}.webp`);
     const url = await storage.put(key, webp, "image/webp");
@@ -116,7 +126,7 @@ export async function generateCampaignArt(
         },
       },
     });
-  }
+  })();
 
   const portraitJobs: Array<Promise<void>> = [];
 
@@ -169,7 +179,12 @@ export async function generateCampaignArt(
     );
   }
 
-  await Promise.all(portraitJobs);
+  const results = await Promise.allSettled([mapJob, landscapeJob, ...portraitJobs]);
+  for (const result of results) {
+    if (result.status === "rejected") {
+      console.error("Campaign art job failed", result.reason);
+    }
+  }
 
   return { mapConfig, portraitsGenerated };
 }

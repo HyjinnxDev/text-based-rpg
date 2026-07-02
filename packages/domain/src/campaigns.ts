@@ -45,56 +45,49 @@ async function seedGeneratedWorld(
     },
   });
 
-  for (const region of generated.regions) {
-    await prisma.location.create({
-      data: {
+  const [, , npcRecords] = await Promise.all([
+    prisma.location.createMany({
+      data: generated.regions.map((region) => ({
         campaignId,
         name: region.name,
         description: region.description,
         mapLevel: "region",
         discoveryState: { discovered: false },
-      },
-    });
-  }
-
-  for (const faction of generated.factions) {
-    await prisma.faction.create({
-      data: {
+      })),
+    }),
+    prisma.faction.createMany({
+      data: generated.factions.map((faction) => ({
         campaignId,
         name: faction.name,
         description: faction.description,
-      },
-    });
-  }
-
-  const npcRecords = [];
-  for (const npc of generated.npcs) {
-    const record = await prisma.npc.create({
-      data: {
-        campaignId,
-        name: npc.name,
-        locationId: startLocation.id,
-        personality: {
-          role: npc.role,
-          summary: npc.personality,
-          goals: npc.goals,
-        },
-      },
-    });
-    npcRecords.push(record);
-  }
-
-  for (const thread of generated.storyThreads) {
-    await prisma.quest.create({
-      data: {
+      })),
+    }),
+    Promise.all(
+      generated.npcs.map((npc) =>
+        prisma.npc.create({
+          data: {
+            campaignId,
+            name: npc.name,
+            locationId: startLocation.id,
+            personality: {
+              role: npc.role,
+              summary: npc.personality,
+              goals: npc.goals,
+            },
+          },
+        }),
+      ),
+    ),
+    prisma.quest.createMany({
+      data: generated.storyThreads.map((thread) => ({
         campaignId,
         title: thread.title,
         description: thread.description,
         threadType: "main",
         status: "active",
-      },
-    });
-  }
+      })),
+    }),
+  ]);
 
   await prisma.codexEntry.createMany({
     data: [
@@ -178,6 +171,10 @@ export async function createCampaign(
   input: CreateCampaignInput,
   ai: AiRouter,
   options?: {
+    /**
+     * When set, art is generated inline (slow — prefer scheduling
+     * `generateCampaignArt` in the background with the returned `artInput`).
+     */
     imageRouter?: AiImageRouter;
     storage?: StorageAdapter;
   },
@@ -267,33 +264,31 @@ export async function createCampaign(
     input.characterName,
   );
 
+  const artInput: import("./campaign-art").CampaignArtInput = {
+    campaignId: campaign.id,
+    generated,
+    createInput: input,
+    characterId: world.character.id,
+    startLocationId: world.startLocation.id,
+    npcs: (
+      await prisma.npc.findMany({
+        where: { campaignId: campaign.id },
+        select: { id: true, name: true, personality: true },
+      })
+    ).map((npc) => ({
+      id: npc.id,
+      name: npc.name,
+      role: (npc.personality as { role?: string })?.role,
+      personality: (npc.personality as { summary?: string })?.summary,
+    })),
+  };
+
   let art = { mapConfig: null as import("@tbrpg/shared").CampaignMapConfig | null, portraitsGenerated: 0 };
   if (options?.imageRouter && options?.storage) {
-    art = await generateCampaignArt(
-      {
-        campaignId: campaign.id,
-        generated,
-        createInput: input,
-        characterId: world.character.id,
-        startLocationId: world.startLocation.id,
-        npcs: (
-          await prisma.npc.findMany({
-            where: { campaignId: campaign.id },
-            select: { id: true, name: true, personality: true },
-          })
-        ).map((npc) => ({
-          id: npc.id,
-          name: npc.name,
-          role: (npc.personality as { role?: string })?.role,
-          personality: (npc.personality as { summary?: string })?.summary,
-        })),
-      },
-      options.imageRouter,
-      options.storage,
-    );
+    art = await generateCampaignArt(artInput, options.imageRouter, options.storage);
   }
 
-  return { campaign: seeded, generated, ...world, art };
+  return { campaign: seeded, generated, ...world, art, artInput };
 }
 
 export async function listCampaigns(userId: string) {
