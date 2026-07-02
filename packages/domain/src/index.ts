@@ -2,6 +2,7 @@ export * from "./permissions";
 export * from "./event-log";
 export * from "./state-update";
 export * from "./campaigns";
+export * from "./invites";
 export * from "./campaign-art";
 export * from "./scenes";
 export * from "./action-resolver";

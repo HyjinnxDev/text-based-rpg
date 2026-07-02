@@ -127,6 +127,7 @@ model Campaign {
   worldTime      Json             @default("{\"day\":1,\"hour\":8,\"season\":\"spring\",\"calendarLabel\":\"Day 1, Spring\"}")
   worldState     Json             @default("{}")
   maxPlayers     Int              @default(8)
+  inviteCode     String?          @unique
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
   archivedAt     DateTime?

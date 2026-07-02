@@ -10,6 +10,7 @@ import { CampaignMap, type MapMarkerData } from "@/components/campaign-map";
 import { ScenePanel } from "@/components/scene-panel";
 import { CodexPanel } from "@/components/codex-panel";
 import { JournalPanel } from "@/components/journal-panel";
+import { InviteButton } from "@/components/invite-button";
 import { PlayTabBar, type PlayTab } from "@/components/play-tab-bar";
 import { CampaignPlaySkeleton } from "@/components/campaign-play-skeleton";
 import { Card, Badge } from "@/components/ui";
@@ -19,6 +20,7 @@ interface CampaignData {
   id: string;
   title: string;
   premise: string | null;
+  mode: string;
   scenes: { id: string; title: string; locationId: string | null }[];
   mapMarkers: MapMarkerData[];
   mapConfig: CampaignMapConfig | null;
@@ -77,6 +79,7 @@ export default function CampaignPlayPage() {
       id: data.campaign.id,
       title: data.campaign.title,
       premise: data.campaign.premise,
+      mode: data.campaign.mode,
       scenes: data.campaign.scenes,
       mapConfig: parseCampaignMapConfig(data.campaign.settings),
       landscapeUrl: (startLocation?.metadata as { landscapeUrl?: string })?.landscapeUrl ?? null,
@@ -148,12 +151,15 @@ export default function CampaignPlayPage() {
                 </p>
               )}
             </div>
-            {presence && onlineCount > 0 && (
-              <Badge variant="success" className="shrink-0">
-                <Users className="mr-1 h-3 w-3" aria-hidden />
-                {onlineCount} online
-              </Badge>
-            )}
+            <div className="flex shrink-0 items-center gap-2">
+              {presence && onlineCount > 0 && (
+                <Badge variant="success" className="shrink-0">
+                  <Users className="mr-1 h-3 w-3" aria-hidden />
+                  {onlineCount} online
+                </Badge>
+              )}
+              {campaign.mode !== "SOLO" && <InviteButton campaignId={campaignId} />}
+            </div>
           </div>
         </div>
 

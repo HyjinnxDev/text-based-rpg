@@ -50,6 +50,7 @@ const MODES: Array<{
 export default function NewCampaignPage() {
   const router = useRouter();
   const [mode, setMode] = useState<GenerationMode>("rough_idea");
+  const [playMode, setPlayMode] = useState<"SOLO" | "PARTY">("SOLO");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -80,7 +81,7 @@ export default function NewCampaignPage() {
 
     const shared = {
       characterName: characterName.trim() || undefined,
-      mode: "SOLO",
+      mode: playMode,
     };
     const payload =
       mode === "rough_idea"
@@ -265,6 +266,44 @@ export default function NewCampaignPage() {
               maxLength={80}
               placeholder="Leave blank for “Adventurer”"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label>Who's playing?</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setPlayMode("SOLO")}
+                aria-pressed={playMode === "SOLO"}
+                className={cn(
+                  "rounded-lg border px-3 py-2.5 text-left text-sm transition-colors",
+                  playMode === "SOLO"
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border bg-muted text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <span className="font-medium">Solo</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Just you and the AI
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setPlayMode("PARTY")}
+                aria-pressed={playMode === "PARTY"}
+                className={cn(
+                  "rounded-lg border px-3 py-2.5 text-left text-sm transition-colors",
+                  playMode === "PARTY"
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border bg-muted text-muted-foreground hover:text-foreground",
+                )}
+              >
+                <span className="font-medium">Party</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Invite friends with a link
+                </span>
+              </button>
+            </div>
           </div>
         </div>
 
