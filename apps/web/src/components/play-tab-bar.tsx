@@ -1,17 +1,20 @@
 "use client";
 
-import { BookOpen, Map, Scroll } from "lucide-react";
+import { BookOpen, Map, Scroll, Swords } from "lucide-react";
+
+export type PlayTab = "scene" | "map" | "journal" | "codex";
 
 export function PlayTabBar({
   activeTab,
   onTabChange,
 }: {
-  activeTab: "scene" | "map" | "codex";
-  onTabChange: (tab: "scene" | "map" | "codex") => void;
+  activeTab: PlayTab;
+  onTabChange: (tab: PlayTab) => void;
 }) {
   const tabs = [
     { id: "scene" as const, label: "Scene", icon: BookOpen },
     { id: "map" as const, label: "Map", icon: Map },
+    { id: "journal" as const, label: "Journal", icon: Swords },
     { id: "codex" as const, label: "Codex", icon: Scroll },
   ];
 

@@ -9,7 +9,8 @@ import { parseCampaignMapConfig } from "@tbrpg/shared";
 import { CampaignMap, type MapMarkerData } from "@/components/campaign-map";
 import { ScenePanel } from "@/components/scene-panel";
 import { CodexPanel } from "@/components/codex-panel";
-import { PlayTabBar } from "@/components/play-tab-bar";
+import { JournalPanel } from "@/components/journal-panel";
+import { PlayTabBar, type PlayTab } from "@/components/play-tab-bar";
 import { CampaignPlaySkeleton } from "@/components/campaign-play-skeleton";
 import { Card, Badge } from "@/components/ui";
 import { useRealtimeCampaign } from "@/hooks/use-realtime-campaign";
@@ -23,8 +24,6 @@ interface CampaignData {
   mapConfig: CampaignMapConfig | null;
   landscapeUrl: string | null;
 }
-
-type PlayTab = "scene" | "map" | "codex";
 
 export default function CampaignPlayPage() {
   const params = useParams<{ id: string }>();
@@ -192,6 +191,7 @@ export default function CampaignPlayPage() {
               />
             </Card>
           )}
+          {mobileTab === "journal" && <JournalPanel campaignId={campaignId} compact />}
           {mobileTab === "codex" && <CodexPanel campaignId={campaignId} compact />}
         </div>
 
@@ -226,7 +226,8 @@ export default function CampaignPlayPage() {
         </div>
 
         <aside className="hidden lg:block">
-          <div className="sticky top-20">
+          <div className="sticky top-20 space-y-6">
+            <JournalPanel campaignId={campaignId} />
             <CodexPanel campaignId={campaignId} />
           </div>
         </aside>

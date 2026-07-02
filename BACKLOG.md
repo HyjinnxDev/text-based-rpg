@@ -15,8 +15,6 @@ Rules for each iteration:
 
 ## Phase B — Expose built backends in the UI (quick wins)
 
-- [ ] B5. Inventory/items panel in play view (state engine already updates items).
-- [ ] B6. Quests panel in play view (state engine already updates quests).
 - [ ] B7. NPC panel with memory/mood display (data already stored).
 - [ ] B8. Show character/NPC portraits in UI where generated (Gemini art now stores `portraitUrl`).
 
@@ -52,6 +50,8 @@ Rules for each iteration:
 - [ ] F4. Admin dashboard.
 
 ## Done
+
+- [x] B5+B6. (2026-07-02) Journal panel with Quests/Items tabs: new `GET /api/campaigns/:id/journal` route, `journal-panel.tsx` refreshing on `campaign-updated`, quest status/thread badges, item quantity ×N. Mobile gets a 4th "Journal" tab; desktop sidebar stacks Journal above Codex. Build + lints clean.
 
 - [x] B4. (2026-07-02) Optional `characterName` (1–80 chars) added to all three `createCampaignSchema` variants, threaded through `seedGeneratedWorld` (character + map marker label) and the Gemini portrait prompt; UI input on new-campaign page for all modes, blank falls back to "Adventurer". Tests + build clean.
 
