@@ -18,10 +18,6 @@ Rules for each iteration:
 - [ ] B7. NPC panel with memory/mood display (data already stored).
 - [ ] B8. Show character/NPC portraits in UI where generated (Gemini art now stores `portraitUrl`).
 
-## Phase C — Multiplayer core
-
-- [ ] C5. Turn handling for parties (simultaneous or ordered action resolution) — design then implement.
-
 ## Phase D — Host & account tools
 
 - [ ] D1. Host controls: pause campaign, override/retcon last event.
@@ -46,6 +42,8 @@ Rules for each iteration:
 - [ ] F4. Admin dashboard.
 
 ## Done
+
+- [x] C5. (2026-07-02) Turn handling: opt-in per-scene rounds mode (design: free-form default preserved; rounds = one action per player per round, auto-advance when all HOST/PLAYER members have acted). `turns.ts` domain module (turn meta in scene metadata, `assertMayActThisRound` gate in submit, `recordTurnAction` in resolve transaction, `turn.round_advanced`/`turn.mode_changed` events), API `GET/PUT /scenes/:sceneId/turns` (PUT host-only), `TurnBar` UI with round status + host toggle. 4 new unit tests; all 31 tests + build clean.
 
 - [x] C4. (2026-07-02) Scene scoping enforced server-side: new `scene-access.ts` (`sceneVisibilityWhere` filter — hosts see all, players see PUBLIC/PARTY + scenes they participate in; `assertSceneAccess` guard). Applied to `getCampaign` scene list, `getSceneState`, and `submitActionIntent` (with reservation release on denial). Unit tests added; all tests + build clean.
 

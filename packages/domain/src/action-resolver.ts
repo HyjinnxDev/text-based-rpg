@@ -4,6 +4,7 @@ import type { AiRouter } from "@tbrpg/ai";
 import { buildScenePrompt } from "@tbrpg/ai";
 import { assertCampaignAccess, NotFoundError } from "./permissions";
 import { assertSceneAccess, sceneVisibilityWhere } from "./scene-access";
+import { assertMayActThisRound, recordTurnAction } from "./turns";
 import { applyStateDelta, validateStateDelta } from "./state-update";
 import { appendCampaignEvent } from "./event-log";
 import { planBroadcast, sceneScopeToVisibility } from "./broadcast";
@@ -74,6 +75,7 @@ export async function submitActionIntent(input: ActionIntentInput) {
             orderBy: { updatedAt: "desc" },
           });
     if (!scene) throw new NotFoundError("Scene", input.sceneId ?? "active");
+    assertMayActThisRound(scene.metadata, input.userId);
   } catch (error) {
     await releaseActionReservation(input.campaignId, input.userId);
     throw error;
@@ -189,6 +191,8 @@ export async function resolveActionIntent(
         });
 
         const result = await applyStateDelta(tx, campaignId, delta, userId, scene.id);
+
+        await recordTurnAction(tx, campaignId, scene.id, userId);
 
         await tx.scene.update({
           where: { id: scene.id },

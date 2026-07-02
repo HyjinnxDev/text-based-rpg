@@ -12,6 +12,7 @@ import { CodexPanel } from "@/components/codex-panel";
 import { JournalPanel } from "@/components/journal-panel";
 import { InviteButton } from "@/components/invite-button";
 import { MembersBar } from "@/components/members-bar";
+import { TurnBar } from "@/components/turn-bar";
 import { PlayTabBar, type PlayTab } from "@/components/play-tab-bar";
 import { CampaignPlaySkeleton } from "@/components/campaign-play-skeleton";
 import { Card, Badge } from "@/components/ui";
@@ -168,6 +169,9 @@ export default function CampaignPlayPage() {
         <div className="space-y-4 lg:hidden">
           {mobileTab === "scene" && (
             <>
+              {campaign.mode !== "SOLO" && activeSceneId && (
+                <TurnBar campaignId={campaignId} sceneId={activeSceneId} />
+              )}
               {campaign.landscapeUrl && (
                 <Card className="overflow-hidden p-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -204,6 +208,9 @@ export default function CampaignPlayPage() {
         </div>
 
         <div className="hidden space-y-6 lg:block">
+          {campaign.mode !== "SOLO" && activeSceneId && (
+            <TurnBar campaignId={campaignId} sceneId={activeSceneId} />
+          )}
           {campaign.landscapeUrl && (
             <Card className="overflow-hidden p-0">
               {/* eslint-disable-next-line @next/next/no-img-element */}
