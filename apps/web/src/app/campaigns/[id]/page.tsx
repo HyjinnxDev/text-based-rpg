@@ -6,7 +6,21 @@ import Link from "next/link";
 import { ArrowLeft, Users } from "lucide-react";
 import type { CampaignMapConfig } from "@tbrpg/shared";
 import { parseCampaignMapConfig } from "@tbrpg/shared";
-import { CampaignMap, type MapMarkerData } from "@/components/campaign-map";
+import dynamic from "next/dynamic";
+import type { MapMarkerData } from "@/components/campaign-map";
+
+// maplibre-gl is ~250KB gzipped — load it only when the map actually renders.
+const CampaignMap = dynamic(
+  () => import("@/components/campaign-map").then((m) => m.CampaignMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="relative h-full min-h-[240px] w-full">
+        <LoadingOverlay label="Loading map…" />
+      </div>
+    ),
+  },
+);
 import { ScenePanel } from "@/components/scene-panel";
 import { CodexPanel } from "@/components/codex-panel";
 import { JournalPanel } from "@/components/journal-panel";
@@ -15,8 +29,9 @@ import { MembersBar } from "@/components/members-bar";
 import { TurnBar } from "@/components/turn-bar";
 import { PlayTabBar, type PlayTab } from "@/components/play-tab-bar";
 import { CampaignPlaySkeleton } from "@/components/campaign-play-skeleton";
-import { Card, Badge } from "@/components/ui";
+import { Card, Badge, LoadingOverlay } from "@/components/ui";
 import { useRealtimeCampaign } from "@/hooks/use-realtime-campaign";
+import { useCampaignPanels } from "@/hooks/use-campaign-panels";
 
 interface CampaignData {
   id: string;
@@ -48,6 +63,13 @@ export default function CampaignPlayPage() {
     actionStatus,
     submitAction,
   } = useRealtimeCampaign(campaignId, activeSceneId);
+
+  const {
+    state: panels,
+    loading: panelsLoading,
+    refreshing: panelsRefreshing,
+    refresh: refreshPanels,
+  } = useCampaignPanels(campaignId, activeSceneId);
 
   useEffect(() => {
     if (lastResolved?.narration) {
@@ -168,7 +190,14 @@ export default function CampaignPlayPage() {
                   {campaign.premise}
                 </p>
               )}
-              {campaign.mode !== "SOLO" && <MembersBar campaignId={campaignId} />}
+              {campaign.mode !== "SOLO" && panels && (
+                <MembersBar
+                  campaignId={campaignId}
+                  members={panels.members}
+                  viewerRole={panels.viewerRole}
+                  onChanged={refreshPanels}
+                />
+              )}
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {presence && onlineCount > 0 && (
@@ -186,7 +215,12 @@ export default function CampaignPlayPage() {
           {mobileTab === "scene" && (
             <>
               {campaign.mode !== "SOLO" && activeSceneId && (
-                <TurnBar campaignId={campaignId} sceneId={activeSceneId} />
+                <TurnBar
+                  campaignId={campaignId}
+                  sceneId={activeSceneId}
+                  state={panels?.turns ?? null}
+                  onChanged={refreshPanels}
+                />
               )}
               {campaign.landscapeUrl && (
                 <Card className="overflow-hidden p-0">
@@ -219,13 +253,33 @@ export default function CampaignPlayPage() {
               />
             </Card>
           )}
-          {mobileTab === "journal" && <JournalPanel campaignId={campaignId} compact />}
-          {mobileTab === "codex" && <CodexPanel campaignId={campaignId} compact />}
+          {mobileTab === "journal" && (
+            <JournalPanel
+              items={panels?.items ?? []}
+              quests={panels?.quests ?? []}
+              loading={panelsLoading}
+              refreshing={panelsRefreshing}
+              compact
+            />
+          )}
+          {mobileTab === "codex" && (
+            <CodexPanel
+              entries={panels?.codexEntries ?? []}
+              loading={panelsLoading}
+              refreshing={panelsRefreshing}
+              compact
+            />
+          )}
         </div>
 
         <div className="hidden space-y-6 lg:block">
           {campaign.mode !== "SOLO" && activeSceneId && (
-            <TurnBar campaignId={campaignId} sceneId={activeSceneId} />
+            <TurnBar
+              campaignId={campaignId}
+              sceneId={activeSceneId}
+              state={panels?.turns ?? null}
+              onChanged={refreshPanels}
+            />
           )}
           {campaign.landscapeUrl && (
             <Card className="overflow-hidden p-0">
@@ -258,8 +312,17 @@ export default function CampaignPlayPage() {
 
         <aside className="hidden lg:block">
           <div className="sticky top-20 space-y-6">
-            <JournalPanel campaignId={campaignId} />
-            <CodexPanel campaignId={campaignId} />
+            <JournalPanel
+              items={panels?.items ?? []}
+              quests={panels?.quests ?? []}
+              loading={panelsLoading}
+              refreshing={panelsRefreshing}
+            />
+            <CodexPanel
+              entries={panels?.codexEntries ?? []}
+              loading={panelsLoading}
+              refreshing={panelsRefreshing}
+            />
           </div>
         </aside>
       </main>

@@ -1,38 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Hourglass, Repeat } from "lucide-react";
 import { Badge, Button } from "@/components/ui";
-
-interface TurnState {
-  viewerRole: "HOST" | "PLAYER" | "OBSERVER";
-  turnMode: "free" | "rounds";
-  round: number;
-  waitingOn: Array<{ userId: string; name: string }>;
-  youHaveActed: boolean;
-}
+import type { PanelTurnState } from "@/hooks/use-campaign-panels";
 
 export function TurnBar({
   campaignId,
   sceneId,
+  state,
+  onChanged,
 }: {
   campaignId: string;
   sceneId: string;
+  state: PanelTurnState | null;
+  onChanged: () => void;
 }) {
-  const [state, setState] = useState<TurnState | null>(null);
   const [switching, setSwitching] = useState(false);
-
-  async function load() {
-    const res = await fetch(`/api/campaigns/${campaignId}/scenes/${sceneId}/turns`);
-    if (res.ok) setState(await res.json());
-  }
-
-  useEffect(() => {
-    load();
-    const handler = () => load();
-    window.addEventListener("campaign-updated", handler);
-    return () => window.removeEventListener("campaign-updated", handler);
-  }, [campaignId, sceneId]);
 
   if (!state) return null;
 
@@ -44,7 +28,7 @@ export function TurnBar({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mode: state.turnMode === "rounds" ? "free" : "rounds" }),
     });
-    if (res.ok) setState(await res.json());
+    if (res.ok) onChanged();
     setSwitching(false);
   }
 

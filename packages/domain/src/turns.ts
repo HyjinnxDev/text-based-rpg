@@ -34,6 +34,16 @@ async function listExpectedActors(campaignId: string) {
 
 export async function getTurnState(campaignId: string, userId: string, sceneId: string) {
   const { memberRole } = await assertCampaignAccess(campaignId, userId, "OBSERVER");
+  return getTurnStateWithRole(campaignId, userId, sceneId, memberRole);
+}
+
+/** Variant for callers that already verified campaign access. */
+export async function getTurnStateWithRole(
+  campaignId: string,
+  userId: string,
+  sceneId: string,
+  memberRole: import("@tbrpg/db").CampaignMemberRole,
+) {
   const scene = await prisma.scene.findFirst({
     where: { id: sceneId, campaignId },
     select: { metadata: true },

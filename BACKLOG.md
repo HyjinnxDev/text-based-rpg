@@ -15,8 +15,6 @@ Rules for each iteration:
 
 ## Phase P — Performance (current priority)
 
-- [ ] P2. Consolidate play-page client fetches: codex/journal/members/turns each refetch the whole list on every `campaign-updated` event — combine into one `state` endpoint or dedupe with a shared cache.
-- [ ] P3. Dynamic-import `maplibre-gl` (heavy) so the play page renders before the map bundle loads.
 - [ ] P4. Trim `getCampaign` payload: select only fields the play page uses (characters/npcs currently return full rows including profiles).
 - [ ] P5. Review Prisma indexes for hot queries (events by campaign+sequence, actions by campaign+user).
 
@@ -49,6 +47,8 @@ Rules for each iteration:
 - [ ] F4. Admin dashboard.
 
 ## Done
+
+- [x] P2+P3. (2026-07-02) One `GET /api/campaigns/:id/state` endpoint (`getCampaignPanelState`: single access check + parallel queries for codex/items/quests/members/turns) replaces 4 separate panel fetches per update; `useCampaignPanels` hook distributes data to now-presentational Codex/Journal/Members/Turn components. `maplibre-gl` dynamically imported (`ssr: false`) so the play page shell renders before the ~250KB map bundle. Tests + build clean.
 
 - [x] P1. (2026-07-02) Fast campaign creation + parallel pipelines: art generation (map/tiles/landscape/portraits) moved out of the request path into Next.js `after()` — response returns as soon as the world is seeded; play page polls briefly until the map appears. `seedGeneratedWorld` batched with `createMany`/`Promise.all`; map/landscape/portrait jobs and tile uploads now run concurrently (`Promise.allSettled` so one failure doesn't sink the rest); action resolver parallelizes pre-AI reads and post-transaction fetches; `maxDuration=300` on the campaigns route. Tests + build clean.
 

@@ -1,46 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Crown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { PanelMember } from "@/hooks/use-campaign-panels";
 
-interface Member {
-  userId: string;
-  role: "HOST" | "PLAYER" | "OBSERVER";
-  name: string | null;
-  email: string;
-  characterName: string | null;
-}
-
-export function MembersBar({ campaignId }: { campaignId: string }) {
-  const [members, setMembers] = useState<Member[]>([]);
-  const [viewerRole, setViewerRole] = useState<string>("PLAYER");
+export function MembersBar({
+  campaignId,
+  members,
+  viewerRole,
+  onChanged,
+}: {
+  campaignId: string;
+  members: PanelMember[];
+  viewerRole: "HOST" | "PLAYER" | "OBSERVER";
+  onChanged: () => void;
+}) {
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
-
-  async function load() {
-    const res = await fetch(`/api/campaigns/${campaignId}/members`);
-    if (!res.ok) return;
-    const data = await res.json();
-    setMembers(data.members);
-    setViewerRole(data.viewerRole);
-  }
-
-  useEffect(() => {
-    load();
-    const handler = () => load();
-    window.addEventListener("campaign-updated", handler);
-    return () => window.removeEventListener("campaign-updated", handler);
-  }, [campaignId]);
 
   async function removeMember(userId: string) {
     setRemovingId(userId);
     const res = await fetch(`/api/campaigns/${campaignId}/members/${userId}`, {
       method: "DELETE",
     });
-    if (res.ok) {
-      setMembers((prev) => prev.filter((m) => m.userId !== userId));
-    }
+    if (res.ok) onChanged();
     setRemovingId(null);
     setConfirmingId(null);
   }

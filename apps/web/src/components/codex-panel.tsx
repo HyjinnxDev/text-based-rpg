@@ -1,51 +1,22 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardHeader, CardTitle, Badge, Spinner } from "@/components/ui";
 import { CodexSkeleton } from "@/components/campaign-play-skeleton";
-
-interface CodexEntry {
-  id: string;
-  title: string;
-  category: string;
-  content: { body?: string };
-  updatedAt: string;
-}
+import type { PanelCodexEntry } from "@/hooks/use-campaign-panels";
 
 export function CodexPanel({
-  campaignId,
+  entries,
+  loading,
+  refreshing,
   compact,
 }: {
-  campaignId: string;
+  entries: PanelCodexEntry[];
+  loading: boolean;
+  refreshing: boolean;
   compact?: boolean;
 }) {
-  const [entries, setEntries] = useState<CodexEntry[]>([]);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  async function load(isRefresh = false) {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-
-    try {
-      const res = await fetch(`/api/campaigns/${campaignId}/codex`);
-      if (res.ok) {
-        const data = await res.json();
-        setEntries(data.entries);
-      }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }
-
-  useEffect(() => {
-    load();
-    const handler = () => load(true);
-    window.addEventListener("campaign-updated", handler);
-    return () => window.removeEventListener("campaign-updated", handler);
-  }, [campaignId]);
 
   const categories = useMemo(() => {
     const cats = [...new Set(entries.map((e) => e.category))];

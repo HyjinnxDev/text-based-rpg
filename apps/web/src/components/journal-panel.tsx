@@ -1,26 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Card, CardHeader, CardTitle, Badge, Spinner } from "@/components/ui";
 import { CodexSkeleton } from "@/components/campaign-play-skeleton";
 import { cn } from "@/lib/utils";
-
-interface JournalItem {
-  id: string;
-  name: string;
-  description: string | null;
-  category: string;
-  quantity: number;
-}
-
-interface JournalQuest {
-  id: string;
-  title: string;
-  description: string | null;
-  status: string;
-  threadType: string;
-  objectives: unknown;
-}
+import type { PanelItem, PanelQuest } from "@/hooks/use-campaign-panels";
 
 type JournalTab = "quests" | "items";
 
@@ -31,41 +15,19 @@ const QUEST_STATUS_VARIANT: Record<string, "default" | "success" | "muted"> = {
 };
 
 export function JournalPanel({
-  campaignId,
+  items,
+  quests,
+  loading,
+  refreshing,
   compact,
 }: {
-  campaignId: string;
+  items: PanelItem[];
+  quests: PanelQuest[];
+  loading: boolean;
+  refreshing: boolean;
   compact?: boolean;
 }) {
-  const [items, setItems] = useState<JournalItem[]>([]);
-  const [quests, setQuests] = useState<JournalQuest[]>([]);
   const [tab, setTab] = useState<JournalTab>("quests");
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  async function load(isRefresh = false) {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-
-    try {
-      const res = await fetch(`/api/campaigns/${campaignId}/journal`);
-      if (res.ok) {
-        const data = await res.json();
-        setItems(data.items);
-        setQuests(data.quests);
-      }
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }
-
-  useEffect(() => {
-    load();
-    const handler = () => load(true);
-    window.addEventListener("campaign-updated", handler);
-    return () => window.removeEventListener("campaign-updated", handler);
-  }, [campaignId]);
 
   return (
     <Card
