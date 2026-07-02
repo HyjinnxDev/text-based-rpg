@@ -161,6 +161,13 @@ export function createStorageFromEnv(): StorageAdapter {
   const driver = resolveStorageDriver();
 
   if (driver === "blob") {
+    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+      console.warn(
+        "STORAGE_DRIVER=blob but BLOB_READ_WRITE_TOKEN is missing — falling back to local storage. " +
+          "Create a Blob store in Vercel (Storage → Blob) to fix this.",
+      );
+      return new LocalStorageAdapter(resolveLocalStoragePath());
+    }
     return new VercelBlobStorageAdapter();
   }
 
