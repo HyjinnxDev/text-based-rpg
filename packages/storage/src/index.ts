@@ -28,11 +28,23 @@ export function resolveLocalStoragePath(): string {
   return path.join(process.cwd(), ".storage");
 }
 
+/**
+ * The Vercel Blob store may be connected with a custom env prefix (e.g. `B_`)
+ * when the default `BLOB_` name is taken — check the known variants.
+ */
+export function resolveBlobToken(): string | undefined {
+  return (
+    process.env.BLOB_READ_WRITE_TOKEN ??
+    process.env.B_READ_WRITE_TOKEN ??
+    process.env.TBRPG_READ_WRITE_TOKEN
+  );
+}
+
 function resolveStorageDriver(): string {
   if (process.env.STORAGE_DRIVER) {
     return process.env.STORAGE_DRIVER;
   }
-  if (process.env.VERCEL && process.env.BLOB_READ_WRITE_TOKEN) {
+  if (process.env.VERCEL && resolveBlobToken()) {
     return "blob";
   }
   return "local";
@@ -69,11 +81,14 @@ export class LocalStorageAdapter implements StorageAdapter {
 export class VercelBlobStorageAdapter implements StorageAdapter {
   private readonly urls = new Map<string, string>();
 
+  constructor(private readonly token = resolveBlobToken()) {}
+
   async put(key: string, data: Buffer, contentType: string): Promise<string> {
     const blob = await blobPut(key, data, {
       access: "public",
       contentType,
       addRandomSuffix: false,
+      token: this.token,
     });
     this.urls.set(key, blob.url);
     return blob.url;
@@ -86,7 +101,7 @@ export class VercelBlobStorageAdapter implements StorageAdapter {
       if (res.ok) return Buffer.from(await res.arrayBuffer());
     }
 
-    const { blobs } = await list({ prefix: key, limit: 20 });
+    const { blobs } = await list({ prefix: key, limit: 20, token: this.token });
     const match = blobs.find((b) => b.pathname === key);
     if (!match) return null;
 
@@ -161,14 +176,15 @@ export function createStorageFromEnv(): StorageAdapter {
   const driver = resolveStorageDriver();
 
   if (driver === "blob") {
-    if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    const token = resolveBlobToken();
+    if (!token) {
       console.warn(
-        "STORAGE_DRIVER=blob but BLOB_READ_WRITE_TOKEN is missing — falling back to local storage. " +
-          "Create a Blob store in Vercel (Storage → Blob) to fix this.",
+        "STORAGE_DRIVER=blob but no Blob read-write token found (checked BLOB_/B_/TBRPG_READ_WRITE_TOKEN) — " +
+          "falling back to local storage. Connect a Blob store in Vercel (Storage → Blob) to fix this.",
       );
       return new LocalStorageAdapter(resolveLocalStoragePath());
     }
-    return new VercelBlobStorageAdapter();
+    return new VercelBlobStorageAdapter(token);
   }
 
   if (driver === "s3") {
