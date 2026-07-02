@@ -305,16 +305,39 @@ export async function listCampaigns(userId: string) {
 
 export async function getCampaign(campaignId: string, userId: string) {
   const { memberRole } = await assertCampaignAccess(campaignId, userId, "OBSERVER");
+  // Trimmed to what the play page renders — codex/items/quests/members come
+  // from getCampaignPanelState instead.
   const campaign = await prisma.campaign.findUnique({
     where: { id: campaignId },
-    include: {
-      locations: true,
-      characters: true,
-      npcs: true,
-      mapMarkers: true,
-      codexEntries: { orderBy: { updatedAt: "desc" }, take: 20 },
+    select: {
+      id: true,
+      title: true,
+      premise: true,
+      status: true,
+      mode: true,
+      settings: true,
+      worldTime: true,
+      locations: {
+        select: { id: true, name: true, metadata: true },
+      },
+      characters: {
+        select: { id: true, name: true, portraitUrl: true, userId: true },
+      },
+      npcs: {
+        select: { id: true, name: true, portraitUrl: true },
+      },
+      mapMarkers: {
+        select: {
+          id: true,
+          label: true,
+          markerType: true,
+          position: true,
+          entityId: true,
+        },
+      },
       scenes: {
         where: { status: "ACTIVE", ...sceneVisibilityWhere(userId, memberRole) },
+        select: { id: true, title: true, locationId: true },
         take: 5,
       },
     },

@@ -15,8 +15,8 @@ Rules for each iteration:
 
 ## Phase P — Performance (current priority)
 
-- [ ] P4. Trim `getCampaign` payload: select only fields the play page uses (characters/npcs currently return full rows including profiles).
-- [ ] P5. Review Prisma indexes for hot queries (events by campaign+sequence, actions by campaign+user).
+- [x] P4. Trim `getCampaign` payload: select only fields the play page uses (characters/npcs currently return full rows including profiles).
+- [x] P5. Review Prisma indexes for hot queries — verified covered: `@@unique([campaignId, sequence])` on CampaignEvent doubles as the composite index for catch-up/next-sequence queries; all hot tables have campaignId indexes. No schema change needed.
 
 ## Phase B — Expose built backends in the UI (quick wins)
 
