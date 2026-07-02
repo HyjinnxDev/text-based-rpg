@@ -11,6 +11,7 @@ import { ScenePanel } from "@/components/scene-panel";
 import { CodexPanel } from "@/components/codex-panel";
 import { JournalPanel } from "@/components/journal-panel";
 import { InviteButton } from "@/components/invite-button";
+import { MembersBar } from "@/components/members-bar";
 import { PlayTabBar, type PlayTab } from "@/components/play-tab-bar";
 import { CampaignPlaySkeleton } from "@/components/campaign-play-skeleton";
 import { Card, Badge } from "@/components/ui";
@@ -150,6 +151,7 @@ export default function CampaignPlayPage() {
                   {campaign.premise}
                 </p>
               )}
+              {campaign.mode !== "SOLO" && <MembersBar campaignId={campaignId} />}
             </div>
             <div className="flex shrink-0 items-center gap-2">
               {presence && onlineCount > 0 && (

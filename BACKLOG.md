@@ -20,7 +20,6 @@ Rules for each iteration:
 
 ## Phase C — Multiplayer core
 
-- [ ] C3. Member list UI with roles; host can remove players.
 - [ ] C4. Scene scoping for parties: who sees which scene, private scenes.
 - [ ] C5. Turn handling for parties (simultaneous or ordered action resolution) — design then implement.
 
@@ -48,6 +47,8 @@ Rules for each iteration:
 - [ ] F4. Admin dashboard.
 
 ## Done
+
+- [x] C3. (2026-07-02) Members bar on party campaign header: `members.ts` domain module (`listCampaignMembers` with viewer role + character names, `removeCampaignMember` host-only transaction cleaning up characters/markers/scene participants + `member.removed` event), API `GET /members` and `DELETE /members/:userId`, chip UI with host crown and two-step remove confirm. Tests + build clean.
 
 - [x] C1+C2. (2026-07-02) Party campaigns + invite flow: `inviteCode` column on Campaign (pushed to Neon), `invites.ts` domain module (host-only code creation, public preview, join with membership + character + marker + scene participant + event, max-player cap), API routes `POST /api/campaigns/:id/invite` and `GET/POST /api/join/:code`, Solo/Party toggle at creation, Invite button (copies link) on party campaign header, `/join/[code]` page with preview + character naming. Tests + build clean.
 
