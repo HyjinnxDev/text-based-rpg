@@ -90,7 +90,7 @@ export default function NewCampaignPage() {
           loading={loading}
         >
           {!loading && <Sparkles className="h-4 w-4" aria-hidden />}
-          {loading ? "Generating world…" : "Generate campaign"}
+          {loading ? "Generating world & artwork…" : "Generate campaign"}
         </Button>
       </Card>
     </main>

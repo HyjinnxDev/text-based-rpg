@@ -1,10 +1,12 @@
 import { prisma } from "@tbrpg/db";
 import type { CreateCampaignInput, GeneratedCampaign } from "@tbrpg/shared";
 import { generatedCampaignSchema } from "@tbrpg/shared";
-import type { AiRouter } from "@tbrpg/ai";
+import type { AiImageRouter, AiRouter } from "@tbrpg/ai";
 import { buildCampaignPrompt } from "@tbrpg/ai";
+import type { StorageAdapter } from "@tbrpg/storage";
 import { assertCampaignAccess, assertHost, NotFoundError } from "./permissions";
 import { appendCampaignEvent } from "./event-log";
+import { generateCampaignArt } from "./campaign-art";
 
 function toPrismaGenerationMode(mode: CreateCampaignInput["generationMode"]) {
   return mode.toUpperCase() as "RANDOM" | "ROUGH_IDEA" | "CUSTOM";
@@ -22,8 +24,8 @@ async function seedGeneratedWorld(
       description: generated.startingLocation.description,
       mapLevel: "settlement",
       coordinates: {
-        lng: generated.startingLocation.lng,
-        lat: generated.startingLocation.lat,
+        x: 0.48,
+        y: 0.52,
       },
       discoveryState: { discovered: true, discoveredBy: "party" },
       metadata: { isStartingLocation: true },
@@ -127,8 +129,8 @@ async function seedGeneratedWorld(
         entityId: startLocation.id,
         label: startLocation.name,
         position: {
-          lng: generated.startingLocation.lng,
-          lat: generated.startingLocation.lat,
+          x: 0.48,
+          y: 0.52,
         },
       },
       {
@@ -137,8 +139,8 @@ async function seedGeneratedWorld(
         entityId: character.id,
         label: character.name,
         position: {
-          lng: generated.startingLocation.lng + 0.01,
-          lat: generated.startingLocation.lat + 0.01,
+          x: 0.5,
+          y: 0.54,
         },
       },
       ...npcRecords.map((npc, i) => ({
@@ -147,8 +149,8 @@ async function seedGeneratedWorld(
         entityId: npc.id,
         label: npc.name,
         position: {
-          lng: generated.startingLocation.lng - 0.01 * (i + 1),
-          lat: generated.startingLocation.lat - 0.01 * (i + 1),
+          x: 0.44 - 0.03 * i,
+          y: 0.5 + 0.02 * i,
         },
       })),
     ],
@@ -173,6 +175,10 @@ export async function createCampaign(
   userId: string,
   input: CreateCampaignInput,
   ai: AiRouter,
+  options?: {
+    imageRouter?: AiImageRouter;
+    storage?: StorageAdapter;
+  },
 ) {
   const premise =
     input.generationMode === "rough_idea"
@@ -254,7 +260,33 @@ export async function createCampaign(
 
   const world = await seedGeneratedWorld(campaign.id, userId, generated);
 
-  return { campaign: seeded, generated, ...world };
+  let art = { mapConfig: null as import("@tbrpg/shared").CampaignMapConfig | null, portraitsGenerated: 0 };
+  if (options?.imageRouter && options?.storage) {
+    art = await generateCampaignArt(
+      {
+        campaignId: campaign.id,
+        generated,
+        createInput: input,
+        characterId: world.character.id,
+        startLocationId: world.startLocation.id,
+        npcs: (
+          await prisma.npc.findMany({
+            where: { campaignId: campaign.id },
+            select: { id: true, name: true, personality: true },
+          })
+        ).map((npc) => ({
+          id: npc.id,
+          name: npc.name,
+          role: (npc.personality as { role?: string })?.role,
+          personality: (npc.personality as { summary?: string })?.summary,
+        })),
+      },
+      options.imageRouter,
+      options.storage,
+    );
+  }
+
+  return { campaign: seeded, generated, ...world, art };
 }
 
 export async function listCampaigns(userId: string) {

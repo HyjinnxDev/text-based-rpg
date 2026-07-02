@@ -2,3 +2,8 @@ export * from "./types";
 export * from "./mock-provider";
 export * from "./live-providers";
 export * from "./router";
+export * from "./env";
+export * from "./image-types";
+export * from "./image-router";
+export * from "./image-prompts";
+export * from "./gemini-image-provider";

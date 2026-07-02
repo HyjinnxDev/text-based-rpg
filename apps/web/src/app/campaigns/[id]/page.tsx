@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Users } from "lucide-react";
+import type { CampaignMapConfig } from "@tbrpg/shared";
+import { parseCampaignMapConfig } from "@tbrpg/shared";
 import { CampaignMap, type MapMarkerData } from "@/components/campaign-map";
 import { ScenePanel } from "@/components/scene-panel";
 import { CodexPanel } from "@/components/codex-panel";
@@ -16,8 +18,10 @@ interface CampaignData {
   id: string;
   title: string;
   premise: string | null;
-  scenes: { id: string; title: string }[];
+  scenes: { id: string; title: string; locationId: string | null }[];
   mapMarkers: MapMarkerData[];
+  mapConfig: CampaignMapConfig | null;
+  landscapeUrl: string | null;
 }
 
 type PlayTab = "scene" | "map" | "codex";
@@ -56,17 +60,40 @@ export default function CampaignPlayPage() {
       return;
     }
     const data = await res.json();
+
+    const portraits = new Map<string, string>();
+    for (const c of data.campaign.characters ?? []) {
+      if (c.portraitUrl) portraits.set(c.id, c.portraitUrl);
+    }
+    for (const n of data.campaign.npcs ?? []) {
+      if (n.portraitUrl) portraits.set(n.id, n.portraitUrl);
+    }
+
+    const startLocation = data.campaign.locations?.find(
+      (l: { metadata?: { isStartingLocation?: boolean } }) =>
+        l.metadata?.isStartingLocation,
+    );
+
     setCampaign({
       id: data.campaign.id,
       title: data.campaign.title,
       premise: data.campaign.premise,
       scenes: data.campaign.scenes,
+      mapConfig: parseCampaignMapConfig(data.campaign.settings),
+      landscapeUrl: (startLocation?.metadata as { landscapeUrl?: string })?.landscapeUrl ?? null,
       mapMarkers: data.campaign.mapMarkers.map(
-        (m: { id: string; label: string; markerType: string; position: unknown }) => ({
+        (m: {
+          id: string;
+          label: string;
+          markerType: string;
+          position: unknown;
+          entityId: string | null;
+        }) => ({
           id: m.id,
           label: m.label,
           markerType: m.markerType,
-          position: m.position as { lng: number; lat: number },
+          position: m.position as MapMarkerData["position"],
+          portraitUrl: m.entityId ? portraits.get(m.entityId) : null,
         }),
       ),
     });
@@ -133,21 +160,34 @@ export default function CampaignPlayPage() {
 
         <div className="space-y-4 lg:hidden">
           {mobileTab === "scene" && (
-            <ScenePanel
-              connected={connected}
-              connecting={connecting}
-              realtimeEnabled={realtimeEnabled}
-              actionStatus={actionStatus}
-              narration={narration}
-              onNarrationChange={() => {}}
-              onSubmit={(action) => submitAction(action, crypto.randomUUID())}
-              compact
-            />
+            <>
+              {campaign.landscapeUrl && (
+                <Card className="overflow-hidden p-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={campaign.landscapeUrl}
+                    alt="Current location"
+                    className="h-40 w-full object-cover"
+                  />
+                </Card>
+              )}
+              <ScenePanel
+                connected={connected}
+                connecting={connecting}
+                realtimeEnabled={realtimeEnabled}
+                actionStatus={actionStatus}
+                narration={narration}
+                onNarrationChange={() => {}}
+                onSubmit={(action) => submitAction(action, crypto.randomUUID())}
+                compact
+              />
+            </>
           )}
           {mobileTab === "map" && (
             <Card className="overflow-hidden p-0">
               <CampaignMap
                 markers={markers}
+                mapConfig={campaign.mapConfig}
                 className="h-[calc(100dvh-14rem)] w-full"
               />
             </Card>
@@ -156,8 +196,22 @@ export default function CampaignPlayPage() {
         </div>
 
         <div className="hidden space-y-6 lg:block">
+          {campaign.landscapeUrl && (
+            <Card className="overflow-hidden p-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={campaign.landscapeUrl}
+                alt="Current location"
+                className="h-40 w-full object-cover"
+              />
+            </Card>
+          )}
           <Card className="overflow-hidden p-0">
-            <CampaignMap markers={markers} className="h-[min(420px,45dvh)] w-full" />
+            <CampaignMap
+              markers={markers}
+              mapConfig={campaign.mapConfig}
+              className="h-[min(420px,45dvh)] w-full"
+            />
           </Card>
 
           <ScenePanel
