@@ -43,13 +43,22 @@ export function MembersBar({
           <span
             key={member.userId}
             className={cn(
-              "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium",
+              "inline-flex items-center gap-1 rounded-full border py-0.5 pr-2.5 text-xs font-medium",
+              member.portraitUrl ? "pl-0.5" : "pl-2.5",
               confirming
                 ? "border-destructive/50 bg-destructive/10 text-destructive"
                 : "border-border/60 bg-muted/40 text-muted-foreground",
             )}
             title={member.name ?? member.email}
           >
+            {member.portraitUrl && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={member.portraitUrl}
+                alt=""
+                className="h-5 w-5 rounded-full border border-border/60 object-cover"
+              />
+            )}
             {isHostMember && <Crown className="h-3 w-3 text-primary" aria-hidden />}
             {label}
             {canRemove && !confirming && (

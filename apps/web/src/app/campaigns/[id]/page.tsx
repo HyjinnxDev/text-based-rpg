@@ -269,6 +269,7 @@ export default function CampaignPlayPage() {
             <JournalPanel
               items={panels?.items ?? []}
               quests={panels?.quests ?? []}
+              npcs={panels?.npcs ?? []}
               loading={panelsLoading}
               refreshing={panelsRefreshing}
               compact
@@ -327,6 +328,7 @@ export default function CampaignPlayPage() {
             <JournalPanel
               items={panels?.items ?? []}
               quests={panels?.quests ?? []}
+              npcs={panels?.npcs ?? []}
               loading={panelsLoading}
               refreshing={panelsRefreshing}
             />

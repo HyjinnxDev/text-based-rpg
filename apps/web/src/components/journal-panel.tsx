@@ -1,12 +1,13 @@
 "use client";
 
 import { useState } from "react";
+import { UserRound } from "lucide-react";
 import { Card, CardHeader, CardTitle, Badge, Spinner } from "@/components/ui";
 import { CodexSkeleton } from "@/components/campaign-play-skeleton";
 import { cn } from "@/lib/utils";
-import type { PanelItem, PanelQuest } from "@/hooks/use-campaign-panels";
+import type { PanelItem, PanelNpc, PanelQuest } from "@/hooks/use-campaign-panels";
 
-type JournalTab = "quests" | "items";
+type JournalTab = "quests" | "items" | "npcs";
 
 const QUEST_STATUS_VARIANT: Record<string, "default" | "success" | "muted"> = {
   active: "default",
@@ -14,15 +15,35 @@ const QUEST_STATUS_VARIANT: Record<string, "default" | "success" | "muted"> = {
   failed: "muted",
 };
 
+function NpcPortrait({ npc }: { npc: PanelNpc }) {
+  if (npc.portraitUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={npc.portraitUrl}
+        alt=""
+        className="h-10 w-10 shrink-0 rounded-full border border-border/60 object-cover"
+      />
+    );
+  }
+  return (
+    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border/60 bg-muted">
+      <UserRound className="h-5 w-5 text-muted-foreground" aria-hidden />
+    </span>
+  );
+}
+
 export function JournalPanel({
   items,
   quests,
+  npcs,
   loading,
   refreshing,
   compact,
 }: {
   items: PanelItem[];
   quests: PanelQuest[];
+  npcs: PanelNpc[];
   loading: boolean;
   refreshing: boolean;
   compact?: boolean;
@@ -47,19 +68,23 @@ export function JournalPanel({
           )}
         </div>
         <div className="mt-2 flex gap-1.5">
-          {(["quests", "items"] as const).map((t) => (
+          {(["quests", "items", "npcs"] as const).map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => setTab(t)}
               className={cn(
-                "rounded-full px-2.5 py-0.5 text-xs font-medium capitalize transition-colors",
+                "rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
                 tab === t
                   ? "bg-primary/20 text-primary"
                   : "bg-muted text-muted-foreground hover:text-foreground",
               )}
             >
-              {t === "quests" ? `Quests (${quests.length})` : `Items (${items.length})`}
+              {t === "quests"
+                ? `Quests (${quests.length})`
+                : t === "items"
+                  ? `Items (${items.length})`
+                  : `NPCs (${npcs.length})`}
             </button>
           ))}
         </div>
@@ -99,6 +124,45 @@ export function JournalPanel({
             {quests.length === 0 && (
               <li className="py-8 text-center text-sm text-muted-foreground">
                 No quests yet. The story will bring them to you.
+              </li>
+            )}
+          </ul>
+        ) : tab === "npcs" ? (
+          <ul className="space-y-3">
+            {npcs.map((npc) => (
+              <li
+                key={npc.id}
+                className="rounded-lg border border-border/50 bg-muted/30 p-3 transition-colors hover:border-border"
+              >
+                <div className="flex items-start gap-3">
+                  <NpcPortrait npc={npc} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <p className="font-medium text-foreground">{npc.name}</p>
+                      {npc.mood && <Badge variant="default">{npc.mood}</Badge>}
+                      {!npc.alive && <Badge variant="muted">deceased</Badge>}
+                    </div>
+                    {(npc.role || npc.summary) && (
+                      <p className="mt-0.5 text-sm text-muted-foreground">
+                        {[npc.role, npc.summary].filter(Boolean).join(" — ")}
+                      </p>
+                    )}
+                    {npc.recentMemories.length > 0 && (
+                      <ul className="mt-2 space-y-1 border-l-2 border-border/60 pl-2.5">
+                        {npc.recentMemories.map((memoryEvent, i) => (
+                          <li key={i} className="text-xs leading-relaxed text-muted-foreground">
+                            {memoryEvent}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                </div>
+              </li>
+            ))}
+            {npcs.length === 0 && (
+              <li className="py-8 text-center text-sm text-muted-foreground">
+                No one you&apos;ve met yet. The world is full of strangers.
               </li>
             )}
           </ul>

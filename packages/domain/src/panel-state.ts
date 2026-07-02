@@ -13,7 +13,7 @@ export async function getCampaignPanelState(
 ) {
   const { memberRole } = await assertCampaignAccess(campaignId, userId, "OBSERVER");
 
-  const [codexEntries, items, quests, members, characters, turns, latestEvent] = await Promise.all([
+  const [codexEntries, items, quests, members, characters, npcs, turns, latestEvent] = await Promise.all([
     prisma.codexEntry.findMany({
       where: { campaignId },
       orderBy: { updatedAt: "desc" },
@@ -33,7 +33,19 @@ export async function getCampaignPanelState(
     }),
     prisma.character.findMany({
       where: { campaignId, isPlayerCharacter: true, userId: { not: null } },
-      select: { userId: true, name: true },
+      select: { userId: true, name: true, portraitUrl: true },
+    }),
+    prisma.npc.findMany({
+      where: { campaignId },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        portraitUrl: true,
+        personality: true,
+        memory: true,
+        status: true,
+      },
     }),
     sceneId
       ? getTurnStateWithRole(campaignId, userId, sceneId, memberRole)
@@ -45,7 +57,7 @@ export async function getCampaignPanelState(
     }),
   ]);
 
-  const characterNames = new Map(characters.map((c) => [c.userId!, c.name]));
+  const charactersByUser = new Map(characters.map((c) => [c.userId!, c]));
 
   // Where the story left off: last resolved narration, or the generated
   // opening situation for a campaign nobody has acted in yet.
@@ -68,8 +80,27 @@ export async function getCampaignPanelState(
       joinedAt: m.joinedAt,
       name: m.user.name,
       email: m.user.email,
-      characterName: characterNames.get(m.userId) ?? null,
+      characterName: charactersByUser.get(m.userId)?.name ?? null,
+      portraitUrl: charactersByUser.get(m.userId)?.portraitUrl ?? null,
     })),
+    npcs: npcs.map((npc) => {
+      const personality = npc.personality as {
+        role?: string;
+        summary?: string;
+        mood?: string;
+      } | null;
+      const memory = npc.memory as { events?: string[] } | null;
+      return {
+        id: npc.id,
+        name: npc.name,
+        portraitUrl: npc.portraitUrl,
+        role: personality?.role ?? null,
+        summary: personality?.summary ?? null,
+        mood: personality?.mood ?? null,
+        alive: (npc.status as { alive?: boolean } | null)?.alive ?? true,
+        recentMemories: (memory?.events ?? []).slice(-3).reverse(),
+      };
+    }),
     turns,
   };
 }

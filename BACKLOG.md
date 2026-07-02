@@ -20,8 +20,8 @@ Rules for each iteration:
 
 ## Phase B — Expose built backends in the UI (quick wins)
 
-- [ ] B7. NPC panel with memory/mood display (data already stored).
-- [ ] B8. Show character/NPC portraits in UI where generated (Gemini art now stores `portraitUrl`).
+- [x] B7. NPC panel with memory/mood display — NPCs tab in the Journal panel with portrait, mood badge, role/summary, and last 3 memory events.
+- [x] B8. Show character/NPC portraits in UI where generated — NPC tab portraits, member-bar avatars, map markers (already done earlier).
 
 ## Phase D — Host & account tools
 

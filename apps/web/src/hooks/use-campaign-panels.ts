@@ -32,6 +32,18 @@ export interface PanelMember {
   name: string | null;
   email: string;
   characterName: string | null;
+  portraitUrl: string | null;
+}
+
+export interface PanelNpc {
+  id: string;
+  name: string;
+  portraitUrl: string | null;
+  role: string | null;
+  summary: string | null;
+  mood: string | null;
+  alive: boolean;
+  recentMemories: string[];
 }
 
 export interface PanelTurnState {
@@ -49,6 +61,7 @@ export interface PanelState {
   items: PanelItem[];
   quests: PanelQuest[];
   members: PanelMember[];
+  npcs: PanelNpc[];
   turns: PanelTurnState | null;
 }
 
