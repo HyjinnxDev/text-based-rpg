@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/session";
 import { listCampaigns } from "@tbrpg/domain";
 import { Button, Card, Badge } from "@/components/ui";
 import { ChevronRight, Plus } from "lucide-react";
+import { CampaignCardActions } from "@/components/campaign-card-actions";
 
 export default async function CampaignsPage() {
   const session = await requireSession();
@@ -30,8 +31,11 @@ export default async function CampaignsPage() {
       <ul className="mt-8 space-y-3">
         {campaigns.map((campaign) => (
           <li key={campaign.id}>
-            <Link href={`/campaigns/${campaign.id}`} className="group block">
-              <Card className="flex items-center justify-between gap-4 transition-colors hover:border-primary/30 hover:bg-card">
+            <Card className="flex items-center justify-between gap-4 transition-colors hover:border-primary/30 hover:bg-card">
+              <Link
+                href={`/campaigns/${campaign.id}`}
+                className="group flex min-w-0 flex-1 items-center gap-2"
+              >
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium text-foreground group-hover:text-primary transition-colors">
                     {campaign.title}
@@ -44,8 +48,12 @@ export default async function CampaignsPage() {
                   className="h-5 w-5 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary"
                   aria-hidden
                 />
-              </Card>
-            </Link>
+              </Link>
+              <CampaignCardActions
+                campaignId={campaign.id}
+                campaignTitle={campaign.title}
+              />
+            </Card>
           </li>
         ))}
         {campaigns.length === 0 && (
